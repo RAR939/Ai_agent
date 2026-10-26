@@ -1,0 +1,17 @@
+# данные и индексы: никогда не попадают в репозиторий (в git только README папки)
+data/*
+!data/README.md
+logs/*
+!logs/README.md
+*.db
+*.sqlite
+chroma/
+
+# окружение и секреты
+.env
+.venv/
+
+# мусор Python и pytest
+__pycache__/
+*.pyc
+.pytest_cache/
