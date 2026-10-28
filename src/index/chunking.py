@@ -27,7 +27,8 @@ def chunk_messages(messages, strategy=None):
         groups=list(roots.values())
     elif strategy in ('window','day'):
         days=defaultdict(list)
-        for m in msgs:days[(m.chat,m.ts[:10])].append(m)
+        # окно идёт через полночь: вопрос после 00:00 остаётся рядом с объявлением; по дням режет только strategy='day'
+        for m in msgs:days[(m.chat,m.ts[:10] if strategy=='day' else '')].append(m)
         for day in days.values():
             if strategy=='day':groups.append(day)
             else:
