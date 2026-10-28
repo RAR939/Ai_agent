@@ -1,0 +1,48 @@
+# path/to/config/config.yaml
+models:
+  llm: "qwen3:8b"
+  embed: "bge-m3"
+  renamer: "BAAI/bge-reranker-v2-m3"
+  temperature: 0.1
+
+retrieval:
+  chunk_strategy: "window"
+  window_size: 10
+  window_step: 5
+  max_chunk_chars: 1800
+  candidates: 20
+  rerank_top: 15
+  top_k: 5
+  min_score: 0.3
+  use_reranker: true
+  bm25: {k1: 1.5, b: 0.75}
+
+tracker:
+  prefilter_keywords: ["сдать", "сдача", "срок", "дедлайн", "перенести"]
+  confidence_threshold: 0.7
+  similarity_threshold: 85
+  attach_window_min: 10
+  attach_exts: [pdf, docx, doc, xlsx, pptx, zip, rar, txt, odt]
+  attach_max_per_msg: 5
+
+schedule:
+  semester_start: "2026-09-01"
+  first_week_parity: "odd"
+  holidays: []
+
+# path/to/config/config.yaml
+agent:
+  max_steps: 5
+  timeout_sec: 60
+  mode: "llm"
+  routing_rules:
+    list_deadlines: ["сда", "срок", "дедлайн", "горит", "когда"]
+    get_schedule: ["пар", "расписани", "заняти", "завтра"]
+
+ui:
+  use_mock: true
+
+paths:
+  data: "data"
+  db: "data/helper.db"
+  logs: "logs"

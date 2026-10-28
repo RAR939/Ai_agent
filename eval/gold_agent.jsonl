@@ -1,0 +1,15 @@
+{"id": 1, "question": "Когда сдавать Лаб.2?", "expected_tool": "list_deadlines", "expected_params": {"discipline": "elektro"}}
+{"id": 2, "question": "Что у меня горит на этой неделе?", "expected_tool": "list_deadlines", "expected_params": {}}
+{"id": 3, "question": "Какие пары завтра по электротехнике?", "expected_tool": "get_schedule", "expected_params": {"discipline": "elektro"}}
+{"id": 4, "question": "Что говорили про перенос рубежки?", "expected_tool": "search_messages", "expected_params": {"query": "перенос рубежки"}}
+{"id": 5, "question": "Какие материалы к Лаб.2?", "expected_tool": "list_deadlines", "expected_params": {}}
+{"id": 6, "question": "Что нужно в отчете по лабе?", "expected_tool": "search_messages", "expected_params": {"query": "отчет лаба"}}
+{"id": 7, "question": "Лаб.2 перенесли на 5 ноября, запиши", "expected_tool": "update_deadline", "expected_params": {}}
+{"id": 8, "question": "Сдаем завтра лабу?", "expected_tool": "get_schedule", "expected_params": {}}
+{"id": 9, "question": "Какие файлы прикреплены к дедлайну 5?", "expected_tool": "get_attachments", "expected_params": {"deadline_id": 5}}
+{"id": 10, "question": "Есть ли что-то про экзамен по моделям данных?", "expected_tool": "search_messages", "expected_params": {"discipline": "models"}}
+{"id": 11, "question": "Добавь дедлайн по электротехнике на следующую пятницу", "expected_tool": "add_deadline", "expected_params": {}}
+{"id": 12, "question": "Что задавали по моделям данных?", "expected_tool": "search_messages", "expected_params": {"discipline": "models"}}
+{"id": 13, "question": "Запусти обработку новых сообщений в чате elektro", "expected_tool": "process_new_messages", "expected_params": {"chat": "elektro"}}
+{"id": 14, "question": "Какие занятия на следующей неделе?", "expected_tool": "get_schedule", "expected_params": {}}
+{"id": 15, "question": "Кто скидывал методичку по лабе?", "expected_tool": "search_messages", "expected_params": {"query": "методичка лаба"}}
