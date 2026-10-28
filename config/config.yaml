@@ -29,6 +29,10 @@ schedule:
 agent:
   max_steps: 5
   timeout_sec: 120
+  mode: "llm"                # llm | rules (запасной режим: маршрутизация по ключевым словам)
+  routing_rules:             # инструмент: основы слов для режима rules
+    list_deadlines: ["сда", "срок", "дедлайн", "горит", "когда"]
+    get_schedule: ["пар", "расписани", "заняти", "завтра"]
 ui:
   use_mock: true
 paths:
