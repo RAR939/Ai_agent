@@ -19,10 +19,27 @@ from src.schemas import AgentResult, ToolCall, SearchHit
 
 MSK = timezone(timedelta(hours=3))
 ROOT = Path(__file__).resolve().parent.parent
-PROMPT_PATH = ROOT / "config" / "prompts" / "agent_v1.txt"
+PROMPTS_DIR = ROOT / "config" / "prompts"
+DEFAULT_PROMPT_VERSION = "agent_v2"
+WEEKDAYS = ["понедельник", "вторник", "среда", "четверг", "пятница", "суббота", "воскресенье"]
 
 
-def _log_trace(question: str, trace: list[ToolCall], answer: str, total_sec: float, model: str):
+def _now() -> datetime:
+    return datetime.now(MSK)
+
+
+def _system_prompt(version: str) -> str:
+    """Текст промпта версии `version` (config/prompts/<версия>.txt) с сегодняшней датой вместо {today}."""
+    path = PROMPTS_DIR / f"{version}.txt"
+    if not path.exists():
+        raise FileNotFoundError(f"Нет промпта агента {version}: {path}")
+    now = _now()
+    today = f"{now.strftime('%Y-%m-%d')}, {WEEKDAYS[now.weekday()]}, {now.strftime('%H:%M')}"
+    return path.read_text(encoding="utf-8").replace("{today}", today)
+
+
+def _log_trace(question: str, trace: list[ToolCall], answer: str, total_sec: float, model: str,
+               prompt_version: str):
     logs = Path(load_config()["paths"]["logs"])
     logs = logs if logs.is_absolute() else ROOT / logs
     logs.mkdir(parents=True, exist_ok=True)
@@ -32,7 +49,8 @@ def _log_trace(question: str, trace: list[ToolCall], answer: str, total_sec: flo
         "trace": [t.model_dump() for t in trace],
         "answer": answer,
         "total_sec": round(total_sec, 2),
-        "model": model
+        "model": model,
+        "prompt_version": prompt_version,
     }
     with open(logs / "agent_trace.jsonl", "a", encoding="utf-8") as f:
         f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
@@ -81,7 +99,8 @@ async def run_agent(question: str, history: list[dict], deterministic: bool = Fa
     agent_mode = config["agent"].get("mode", "llm")
     routing_rules = config["agent"].get("routing_rules", {})
 
-    system_prompt = PROMPT_PATH.read_text(encoding="utf-8")
+    prompt_version = config["agent"].get("prompt_version", DEFAULT_PROMPT_VERSION)
+    system_prompt = _system_prompt(prompt_version)
 
     params = StdioServerParameters(
         command=sys.executable,
@@ -211,7 +230,7 @@ async def run_agent(question: str, history: list[dict], deterministic: bool = Fa
                     final_text = "Не удалось получить ответ."
 
     total_sec = time.time() - start_total
-    _log_trace(question, trace, final_text, total_sec, model_name)
+    _log_trace(question, trace, final_text, total_sec, model_name, prompt_version)
 
     return AgentResult(text=final_text, sources=sources, trace=trace, pending_ids=pending_ids)
 

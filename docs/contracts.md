@@ -533,7 +533,7 @@ students: []        # остальные получат STUDENT_N автомат
 ### Лог трассы `logs/agent_trace.jsonl`
 
 ```
-{"ts": "2026-10-25T09:00:00+03:00", "question": "когда лаба 2?", "trace": [ToolCall, ...], "answer": "...", "total_sec": 18.4, "model": "qwen3:8b"}
+{"ts": "2026-10-25T09:00:00+03:00", "question": "когда лаба 2?", "trace": [ToolCall, ...], "answer": "...", "total_sec": 18.4, "model": "qwen3:8b", "prompt_version": "agent_v2"}
 ```
 
 ## 7. Заглушки и порядок работы
