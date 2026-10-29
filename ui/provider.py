@@ -632,56 +632,103 @@ class MockProvider(Provider):
 
 
 class RealProvider(Provider):
+    """Настоящие модули: SQLite трекера (роль 4), индекс (роль 3), хранилище (роль 2), агент (роль 5)."""
+
+    @staticmethod
+    def _chats(chat: str) -> list[str]:
+        """«all» означает все чаты (так зовёт вкладка «Источники»)."""
+        from src.ingest import store
+        return store.list_chats() if chat == "all" else [chat]
+
     def ask(self, question: str, history: list[dict]) -> AgentResult:
-        raise NotImplementedError(
-            "RealProvider будет подключён после готовности агента."
-        )
+        import asyncio
 
-    def list_deadlines(self, discipline=None, status=None):
-        raise NotImplementedError
+        from src.agent import run_agent
+        try:
+            return asyncio.run(run_agent(question, history))
+        except Exception as e:          # Ollama выключена, модель не скачана и т. п.
+            return AgentResult(text=f"Не удалось получить ответ: {e}")
 
-    def get_deadline_history(self, id: int):
-        raise NotImplementedError
+    def list_deadlines(self, discipline=None, status=None) -> list[Deadline]:
+        from src.tracker import db
+        return db.list_deadlines(discipline=discipline, status=status)
 
-    def list_pending(self):
-        raise NotImplementedError
+    def get_deadline_history(self, id: int) -> list[DeadlineEvent]:
+        from src.tracker import db
+        return db.get_history(id)
 
-    def resolve_pending(self, id: int, accept: bool):
-        raise NotImplementedError
+    def list_pending(self) -> list[PendingItem]:
+        from src.tracker import db
+        return db.list_pending()
 
-    def lessons_between(
-        self,
-        date_from: str,
-        date_to: str,
-        discipline=None,
-    ):
-        raise NotImplementedError
+    def resolve_pending(self, id: int, accept: bool) -> None:
+        from src.tracker import db
+        db.resolve_pending(id, accept)
 
-    def load_schedule(self, path: str, dry_run=False):
-        raise NotImplementedError
+    def lessons_between(self, date_from: str, date_to: str, discipline=None) -> list[Lesson]:
+        from src.tracker import schedule_query
+        return schedule_query.lessons_between(date_from, date_to, discipline)
 
-    def get_message_context(
-        self,
-        msg_id: str,
-        before=3,
-        after=3,
-    ):
-        raise NotImplementedError
+    def load_schedule(self, path: str, dry_run=False) -> ScheduleImport:
+        from src.tracker import schedule_import
+        return schedule_import.load_schedule(path, dry_run)
 
-    def get_card(self, deadline_id: int):
-        raise NotImplementedError
+    def get_message_context(self, msg_id: str, before=3, after=3) -> MessageContext:
+        from src.ingest import store
+        return store.get_context(msg_id, before, after)
 
-    def file_abs_path(self, f):
-        raise NotImplementedError
+    def get_card(self, deadline_id: int) -> DeadlineCard:
+        from src.tracker import db
+        return db.get_card(deadline_id)
 
-    def index_status(self):
-        raise NotImplementedError
+    def file_abs_path(self, f) -> str:
+        from src.ingest import store
+        return store.file_abs_path(f)
 
-    def reindex(self, chat: str):
-        raise NotImplementedError
+    def index_status(self) -> list[IndexStatus]:
+        from src.ingest import store
+        from src.tracker import db
+        try:
+            from src.index.common import all_chunks
+            chunks = all_chunks()
+        except Exception:               # индекс ещё не построен
+            chunks = []
+        result = []
+        for chat in store.list_chats():
+            msgs = store.load_messages(chat)
+            if not msgs:
+                continue
+            result.append(IndexStatus(
+                chat=chat, messages=len(msgs), period_from=msgs[0].ts, period_to=msgs[-1].ts,
+                last_processed=db.last_processed(chat), chunks=sum(c.chat == chat for c in chunks),
+                deadlines=db.count_deadlines(chat)))
+        return result
 
-    def process_new(self, chat: str):
-        raise NotImplementedError
+    def reindex(self, chat: str) -> dict:
+        try:
+            from src.index.build import reindex
+            parts = [reindex(c) for c in self._chats(chat)]
+        except Exception as e:
+            return {"chat": chat, "status": "error", "error": str(e)}
+        return {"chat": chat, "status": "ok", "chunks": parts[-1]["total"] if parts else 0,
+                "added": sum(p["added"] for p in parts), "updated": sum(p["updated"] for p in parts)}
 
-    def corpus_stats(self):
-        raise NotImplementedError
+    def process_new(self, chat: str) -> Report:
+        from src.tracker import pipeline
+        total = dict.fromkeys(Report.model_fields, 0)
+        for c in self._chats(chat):
+            for key, value in pipeline.process_new(c).model_dump().items():
+                total[key] += value
+        return Report(**total)
+
+    def corpus_stats(self) -> dict:
+        from src.tracker import db
+        status = self.index_status()
+        return {"messages": sum(s.messages for s in status), "deadlines": db.count_deadlines(),
+                "chunks": sum(s.chunks for s in status), "chats": len(status)}
+
+
+def make_provider() -> Provider:
+    """MockProvider или RealProvider по настройке ui.use_mock в config/config.yaml."""
+    from src.config import load_config
+    return MockProvider() if load_config()["ui"].get("use_mock", True) else RealProvider()
