@@ -1,12 +1,20 @@
-"""Роль 3: обсуждение вокруг задания. ЗАГЛУШКА (docs/contracts.md, раздел 4)."""
-from src import _fixture_data as fx
-from src.schemas import Deadline, SearchHit
-
-IS_STUB = True
-
+from functools import lru_cache
+from datetime import datetime,timedelta
+from src.schemas import Deadline,SearchHit
+from .search import search
+from .common import cfg, messages, min_score
 
 def get_discussion(deadline: Deadline, top_k: int = 5) -> list[SearchHit]:
-    """Фрагменты того же чата, кроме тех, что состоят только из сообщения-объявления."""
-    chat = deadline.source_msg.split(":")[0]
-    found = [h for h in fx.hits() if h.chat == chat and set(h.msg_ids) != {deadline.source_msg}]
-    return found[:max(0, min(8, top_k))]
+    chat=deadline.source_msg.split(':')[0]
+    return _discussion(deadline.model_dump_json(),chat,min(8,top_k))
+@lru_cache(maxsize=128)
+def _discussion(serialized,chat,top_k):
+    deadline=Deadline.model_validate_json(serialized)
+    ms=messages(chat);origin=next((m for m in ms if m.id==deadline.source_msg),None)
+    if not origin:return []
+    days=cfg()['retrieval'].get('discussion_window_days',7)
+    dt=datetime.fromisoformat(origin.ts);lo=(dt-timedelta(days=days)).date().isoformat();hi=(dt+timedelta(days=days)).date().isoformat()
+    query=f'{deadline.discipline} {deadline.task} требования отчёт оформление защита как сдавать {deadline.due_text}'
+    results=search(query,chat=chat,date_from=lo,date_to=hi,top_k=8)
+    excluded={deadline.source_msg}
+    return [h for h in results if set(h.msg_ids)-excluded and h.score>=min_score()][:top_k]
