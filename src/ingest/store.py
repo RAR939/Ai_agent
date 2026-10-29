@@ -52,4 +52,6 @@ def get_attachments(msg_id: str) -> list[AttachedFile]:
 
 
 def file_abs_path(f: AttachedFile) -> str:
-    return str(fx.FILES_DIR / Path(f.path).name)
+    """Файл чата: data/raw/<чат>/<path> (контракт); нет такого, берётся файл синтетического мини-чата."""
+    real = fx.ROOT / "data" / "raw" / f.msg_id.split(":")[0] / f.path
+    return str(real if real.is_file() else fx.FILES_DIR / Path(f.path).name)
