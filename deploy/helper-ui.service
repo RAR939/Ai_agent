@@ -1,0 +1,18 @@
+# Служба systemd для интерфейса на сервере. Шаблон: поправьте пользователя и пути, затем
+#   sudo cp deploy/helper-ui.service /etc/systemd/system/helper-ui.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now helper-ui
+# Не проверялась на настоящем сервере.
+[Unit]
+Description=Анализатор учебных чатов (интерфейс)
+After=network.target ollama.service
+
+[Service]
+User=helper
+WorkingDirectory=/opt/helper
+# пароль на вход (необязательно) и прочие секреты вынесены в файл, которого нет в git:
+EnvironmentFile=-/etc/helper.env
+ExecStart=/opt/helper/.venv/bin/streamlit run ui/app.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

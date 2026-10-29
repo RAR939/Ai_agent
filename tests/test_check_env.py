@@ -96,3 +96,31 @@ def test_main_exit_code(monkeypatch, capsys, critical, code):
     assert ce.main() == code
     out = capsys.readouterr().out
     assert "→ почините" in out and ("Не хватает обязательного: Тест" in out if critical else "Предупреждений: 1" in out)
+
+
+def test_ollama_check_shows_server_and_latency(monkeypatch):
+    import src.llm as llm_mod
+    cfg = {"models": {"llm": "qwen3:8b", "embed": "bge-m3"}}
+    monkeypatch.setattr(llm_mod, "describe", lambda: "http://gpu:11434, токен задан")
+    monkeypatch.setattr(ce, "installed_models", lambda: ["qwen3:8b", "bge-m3:latest"])
+    first, *rest = ce.check_ollama(cfg)
+    assert first.ok and "http://gpu:11434, токен задан" in first.detail and "ответ за" in first.detail
+    assert all(c.ok for c in rest)
+
+    def slow():
+        import time
+        time.sleep(0.05)
+        return ["qwen3:8b", "bge-m3:latest"]
+    ticks = iter([0.0, 3.0])
+    monkeypatch.setattr(ce.time, "monotonic", lambda: next(ticks))
+    monkeypatch.setattr(ce, "installed_models", slow)
+    checks = ce.check_ollama(cfg)
+    assert any(c.name == "Связь с Ollama" and not c.ok and not c.critical for c in checks)
+
+
+def test_ollama_down_mentions_server_setup(monkeypatch):
+    def down():
+        raise ConnectionError("нет связи")
+    monkeypatch.setattr(ce, "installed_models", down)
+    (c,) = ce.check_ollama({"models": {"llm": "x", "embed": "y"}})
+    assert not c.ok and "docs/server_setup.md" in c.hint and "ConnectionError" in c.detail

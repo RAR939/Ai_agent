@@ -3,6 +3,8 @@
 load_config() собирает config.yaml, disciplines.yaml и roles.yaml в один словарь:
 ключи config.yaml как есть, плюс "disciplines" и "roles". Если рядом есть
 roles.local.yaml (реальные имена, не в git), он используется вместо roles.yaml.
+Рядом с config.yaml может лежать config.local.yaml (не в git): его значения накладываются на config.yaml
+по разделам (удобно для сервера: адрес Ollama, режим интерфейса, пути).
 """
 import re
 from functools import lru_cache
@@ -30,6 +32,14 @@ def _read_yaml(path: Path):
         raise FileNotFoundError(f"Не найден файл конфигурации: {path}") from None
     except yaml.YAMLError as e:
         raise ValueError(f"Ошибка в {path.name}: {e}") from e
+
+
+def _deep_merge(base: dict, extra: dict) -> dict:
+    """Значения extra поверх base; вложенные словари сливаются, остальное заменяется."""
+    result = dict(base)
+    for key, value in extra.items():
+        result[key] = _deep_merge(result[key], value) if isinstance(value, dict) and isinstance(result.get(key), dict) else value
+    return result
 
 
 def _roles_path() -> Path:
@@ -67,6 +77,12 @@ def load_config() -> dict:
     cfg = _read_yaml(CONFIG_DIR / "config.yaml")
     if not isinstance(cfg, dict):
         raise ValueError("config.yaml: нужен словарь с разделами")
+    local_path = CONFIG_DIR / "config.local.yaml"
+    if local_path.exists():
+        local = _read_yaml(local_path) or {}
+        if not isinstance(local, dict):
+            raise ValueError("config.local.yaml: нужен словарь с разделами")
+        cfg = _deep_merge(cfg, local)
     missing = [s for s in REQUIRED_SECTIONS if not isinstance(cfg.get(s), dict)]
     if missing:
         raise ValueError(f"config.yaml: нет разделов {', '.join(missing)}")

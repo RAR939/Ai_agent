@@ -54,14 +54,14 @@ def build_messages(msg: Message, previous: Sequence[Message] = (),
 
 def _chat(messages: list[dict]) -> str:
     """Один вызов Ollama. Структурированный вывод по схеме, рассуждения отключены."""
-    import ollama
+    from src import llm
     try:
-        resp = ollama.chat(
+        resp = llm.chat(
             model=_model_name(), messages=messages,
             format=DeadlineExtract.model_json_schema(), think=False,
             options={"temperature": 0})
     except Exception as e:                      # сервер не запущен, модели нет, таймаут
-        raise ModelUnavailable(f"Ollama недоступна: {e}") from e
+        raise ModelUnavailable(f"Ollama недоступна ({llm.describe()}): {e}") from e
     return resp.message.content or ""
 
 

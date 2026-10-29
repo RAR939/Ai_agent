@@ -18,3 +18,4 @@ __pycache__/
 
 # реальные имена участников
 config/roles.local.yaml
+config/config.local.yaml

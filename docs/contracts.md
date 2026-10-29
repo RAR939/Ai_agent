@@ -471,6 +471,8 @@ models:
   embed: "bge-m3"
   reranker: "BAAI/bge-reranker-v2-m3"
   temperature: 0.1
+  host: ""                   # адрес Ollama (пусто: OLLAMA_HOST или локальная); см. docs/server_setup.md
+  timeout_sec: 120
 retrieval:
   chunk_strategy: "window"   # window | thread | day
   window_size: 10

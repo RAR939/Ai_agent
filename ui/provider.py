@@ -1,4 +1,6 @@
+import threading
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from pathlib import Path
 
 from src.schemas import (
@@ -631,6 +633,10 @@ class MockProvider(Provider):
         }
 
 
+# Долгие операции над одним чатом выполняются по очереди: на сервере кнопку может нажать несколько человек сразу
+_LOCKS: defaultdict = defaultdict(threading.Lock)
+
+
 class RealProvider(Provider):
     """Настоящие модули: SQLite трекера (роль 4), индекс (роль 3), хранилище (роль 2), агент (роль 5)."""
 
@@ -707,7 +713,10 @@ class RealProvider(Provider):
     def reindex(self, chat: str) -> dict:
         try:
             from src.index.build import reindex
-            parts = [reindex(c) for c in self._chats(chat)]
+            parts = []
+            for c in self._chats(chat):
+                with _LOCKS[f"reindex:{c}"]:
+                    parts.append(reindex(c))
         except Exception as e:
             return {"chat": chat, "status": "error", "error": str(e)}
         return {"chat": chat, "status": "ok", "chunks": parts[-1]["total"] if parts else 0,
@@ -717,7 +726,9 @@ class RealProvider(Provider):
         from src.tracker import pipeline
         total = dict.fromkeys(Report.model_fields, 0)
         for c in self._chats(chat):
-            for key, value in pipeline.process_new(c).model_dump().items():
+            with _LOCKS[f"process:{c}"]:         # второй нажавший ждёт; повторная обработка ничего не меняет
+                part = pipeline.process_new(c)
+            for key, value in part.model_dump().items():
                 total[key] += value
         return Report(**total)
 

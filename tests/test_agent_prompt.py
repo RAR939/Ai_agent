@@ -64,7 +64,7 @@ async def _run(cfg, tmp_logs):
         seen.append(messages[0]["content"])
         return _chat_reply()
     with patch("src.agent.stdio_client") as stdio, patch("src.agent.ClientSession") as cls, \
-            patch("src.agent.ollama.chat", side_effect=chat), patch("src.agent.load_config", return_value=cfg):
+            patch("src.agent.llm.chat", side_effect=chat), patch("src.agent.load_config", return_value=cfg):
         stdio.return_value.__aenter__.return_value = (MagicMock(), MagicMock())
         session = AsyncMock()
         cls.return_value.__aenter__.return_value = session

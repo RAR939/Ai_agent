@@ -8,6 +8,7 @@ import json
 import os
 import re
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -71,17 +72,25 @@ def check_config() -> tuple[Check, dict | None]:
 
 
 def installed_models() -> list[str]:
-    import ollama
-    return [m.model for m in ollama.Client(timeout=3).list().models]
+    from src import llm
+    return llm.list_models(timeout=5)
 
 
 def check_ollama(cfg: dict) -> list[Check]:
+    from src import llm
+    where = llm.describe()
+    started = time.monotonic()
     try:
         have = installed_models()
     except Exception as e:
-        return [Check("Ollama", False, f"не отвечает ({type(e).__name__})",
-                      "установите Ollama с официального сайта и запустите её")]
-    checks = [Check("Ollama", True, f"моделей: {len(have)}")]
+        return [Check("Ollama", False, f"{where}: не отвечает ({type(e).__name__})",
+                      "запустите Ollama; на сервере проверьте SSH-туннель или models.host/OLLAMA_HOST и токен "
+                      "(docs/server_setup.md)")]
+    ping = time.monotonic() - started
+    checks = [Check("Ollama", True, f"{where}, моделей: {len(have)}, ответ за {ping:.2f} с")]
+    if ping > 1.5:
+        checks.append(Check("Связь с Ollama", False, f"медленно ({ping:.1f} с на простой запрос)",
+                            "проверьте сеть и туннель: каждый запрос агента делает несколько обращений", critical=False))
     for role, name in (("LLM", cfg["models"]["llm"]), ("Эмбеддинги", cfg["models"]["embed"])):
         ok = any(m == name or m.split(":")[0] == name.split(":")[0] and ":" not in name for m in have)
         checks.append(Check(f"Модель {role}", ok, name if ok else f"{name} не скачана", f"ollama pull {name}"))
@@ -97,6 +106,20 @@ def check_reranker(cfg: dict) -> Check | None:
     return Check("Реранкер", ok, cfg["models"]["reranker"] if ok else "ещё не скачан",
                  "скачается при первом поиске (нужен интернет один раз) или отключите retrieval.use_reranker",
                  critical=False)
+
+
+def check_gpu(cfg: dict) -> Check | None:
+    """Реранкер (torch) на GPU или на CPU. Не нужна, если реранкер выключен."""
+    if not cfg["retrieval"].get("use_reranker", True):
+        return None
+    try:
+        import torch
+    except ImportError:
+        return Check("GPU для реранкера", False, "torch не установлен", "pip install -r requirements.txt", critical=False)
+    if torch.cuda.is_available():
+        return Check("GPU для реранкера", True, torch.cuda.get_device_name(0))
+    return Check("GPU для реранкера", False, "нет, реранкер считается на CPU (медленно)",
+                 "на сервере с GPU поставьте torch с CUDA или отключите retrieval.use_reranker", critical=False)
 
 
 def check_data(cfg: dict) -> list[Check]:
@@ -131,6 +154,8 @@ def run_checks() -> list[Check]:
     checks += check_ollama(cfg)
     if (reranker := check_reranker(cfg)) is not None:
         checks.append(reranker)
+    if (gpu := check_gpu(cfg)) is not None:
+        checks.append(gpu)
     checks += check_data(cfg)
     checks += check_database()
     return checks

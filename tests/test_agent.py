@@ -6,7 +6,7 @@ from src.agent import run_agent
 
 
 @pytest.mark.anyio
-@patch("src.agent.ollama.chat")
+@patch("src.agent.llm.chat")
 @patch("src.agent.ClientSession")
 @patch("src.agent.stdio_client")
 async def test_agent_tool_call_and_answer(mock_stdio_client, mock_session_class, mock_chat):
@@ -67,7 +67,7 @@ async def test_agent_tool_call_and_answer(mock_stdio_client, mock_session_class,
 
 
 @pytest.mark.anyio
-@patch("src.agent.ollama.chat")
+@patch("src.agent.llm.chat")
 @patch("src.agent.ClientSession")
 @patch("src.agent.stdio_client")
 async def test_agent_loop_protection(mock_stdio_client, mock_session_class, mock_chat):
@@ -158,7 +158,7 @@ def _mock_session(monkeypatch_target, tool_text):
 
 
 @pytest.mark.anyio
-@patch("src.agent.ollama.chat")
+@patch("src.agent.llm.chat")
 @patch("src.agent.ClientSession")
 @patch("src.agent.stdio_client")
 async def test_agent_collects_pending_ids_and_works_from_any_folder(mock_stdio, mock_cls, mock_chat,

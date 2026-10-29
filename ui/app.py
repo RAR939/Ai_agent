@@ -16,6 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
 # --------------------------------------------------
 # Импорты проекта
 # --------------------------------------------------
+from ui.auth import require_password
 from ui.provider import make_provider
 from ui.tabs.chat import render_chat
 from ui.tabs.deadlines import render_deadlines
@@ -83,6 +84,8 @@ st.markdown(
 # --------------------------------------------------
 # Провайдер
 # --------------------------------------------------
+require_password()                  # только если задан HELPER_UI_PASSWORD
+
 if "provider" not in st.session_state:
     st.session_state.provider = make_provider()
 

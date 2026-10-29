@@ -135,13 +135,13 @@ def test_resolve_discipline(tdb):
 
 # ---------- extract: вызов Ollama и лог ----------
 def test_chat_passes_schema_and_disables_thinking(monkeypatch):
-    import ollama
+    from src import llm
     seen = {}
 
     def fake_chat(**kw):
         seen.update(kw)
         return types.SimpleNamespace(message=types.SimpleNamespace(content='{"a": 1}'))
-    monkeypatch.setattr(ollama, "chat", fake_chat)
+    monkeypatch.setattr(llm, "chat", fake_chat)
     assert extract._chat([{"role": "user", "content": "x"}]) == '{"a": 1}'
     assert seen["model"] == "qwen3:8b" and seen["think"] is False
     assert seen["format"] == DeadlineExtract.model_json_schema()
@@ -149,11 +149,11 @@ def test_chat_passes_schema_and_disables_thinking(monkeypatch):
 
 
 def test_chat_wraps_connection_errors(monkeypatch):
-    import ollama
+    from src import llm
 
     def boom(**kw):
         raise ConnectionError("нет связи")
-    monkeypatch.setattr(ollama, "chat", boom)
+    monkeypatch.setattr(llm, "chat", boom)
     with pytest.raises(extract.ModelUnavailable):
         extract._chat([])
 
