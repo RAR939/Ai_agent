@@ -108,6 +108,20 @@ def check_reranker(cfg: dict) -> Check | None:
                  critical=False)
 
 
+def check_gpu(cfg: dict) -> Check | None:
+    """Реранкер (torch) на GPU или на CPU. Не нужна, если реранкер выключен."""
+    if not cfg["retrieval"].get("use_reranker", True):
+        return None
+    try:
+        import torch
+    except ImportError:
+        return Check("GPU для реранкера", False, "torch не установлен", "pip install -r requirements.txt", critical=False)
+    if torch.cuda.is_available():
+        return Check("GPU для реранкера", True, torch.cuda.get_device_name(0))
+    return Check("GPU для реранкера", False, "нет, реранкер считается на CPU (медленно)",
+                 "на сервере с GPU поставьте torch с CUDA или отключите retrieval.use_reranker", critical=False)
+
+
 def check_data(cfg: dict) -> list[Check]:
     clean = sorted((ROOT / cfg["paths"]["data"] / "clean").glob("*.jsonl"))
     checks = [Check("Данные чатов", bool(clean), ", ".join(p.stem for p in clean) if clean
@@ -140,6 +154,8 @@ def run_checks() -> list[Check]:
     checks += check_ollama(cfg)
     if (reranker := check_reranker(cfg)) is not None:
         checks.append(reranker)
+    if (gpu := check_gpu(cfg)) is not None:
+        checks.append(gpu)
     checks += check_data(cfg)
     checks += check_database()
     return checks

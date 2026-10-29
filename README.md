@@ -2,7 +2,7 @@
 
 Локальный ИИ-агент с RAG и MCP: читает обезличенные учебные чаты Telegram, отвечает на вопросы со ссылками на источники,
 сам находит дедлайны и переносы, прикрепляет к заданиям файлы из чата и сопоставляет сроки с расписанием.
-Модель работает через Ollama: на ноутбуке или **на сервере с GPU** (`docs/server_setup.md`), остальное (интерфейс, трекер, база, индекс) на ноутбуке. Подробнее: `docs/project.md`.
+Модель работает через Ollama: на ноутбуке или **на вашем сервере с GPU**. Рекомендуется держать на сервере всё тяжёлое (модели, реранкер, индекс, база, интерфейс), а на ноутбуках открывать только браузер: `docs/server_setup.md`. Подробнее о проекте: `docs/project.md`.
 
 ## Быстрый старт (10 минут)
 
@@ -10,7 +10,6 @@
 python -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ollama pull qwen3:8b && ollama pull bge-m3                # на 8 ГБ памяти вместо 8b возьмите qwen3:4b и поправьте config/config.yaml
-# модель на сервере: ssh -N -L 11434:localhost:11434 пользователь@сервер  (docs/server_setup.md), модели качаются на сервере
 python scripts/check_env.py                               # что готово и чего не хватает
 pytest                                                    # тесты не требуют Ollama
 streamlit run ui/app.py                                   # интерфейс, http://localhost:8501
@@ -19,6 +18,12 @@ streamlit run ui/app.py                                   # интерфейс, 
 Без настоящих данных интерфейс работает в режиме макета (`ui.use_mock: true` в `config/config.yaml`), а на «настоящих
 данных» (`false`) берёт базу дедлайнов, расписание и индекс. Синтетический мини-чат из `tests/fixtures/` лежит в основе
 тестов и демонстрации.
+
+## Запуск на сервере
+
+Сервер с GPU (`docs/server_setup.md`): установить Ollama и модели, `pip install -r requirements.txt`, в `config/config.local.yaml` поставить
+`ui.use_mock: false`, запустить `streamlit run ui/app.py` (или службу из `deploy/helper-ui.service`), а с ноутбука
+`ssh -N -L 8501:localhost:8501 пользователь@сервер` и открыть `http://localhost:8501`. Пароль на вход: переменная `HELPER_UI_PASSWORD`.
 
 ## Как это устроено
 
@@ -57,7 +62,7 @@ streamlit run ui/app.py                                   # интерфейс, 
 
 Переменная окружения `HELPER_DB` задаёт путь к базе дедлайнов вместо `paths.db` (тесты, несколько копий приложения); `OLLAMA_HOST` (адрес Ollama, важнее `models.host`) и `OLLAMA_API_KEY` (токен) передаются и серверу инструментов.
 
-Реальные имена участников хранятся в `config/roles.local.yaml` (не в git), шаблон: `config/roles.yaml`.
+Реальные имена участников хранятся в `config/roles.local.yaml`, а локальные настройки (например, адрес Ollama или режим интерфейса) в `config/config.local.yaml`; оба файла не в git. Шаблон имён: `config/roles.yaml`.
 
 ## Тесты и качество
 

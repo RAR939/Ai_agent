@@ -1,9 +1,13 @@
 import chromadb
+from functools import lru_cache
 from .common import ROOT,cfg
 
+@lru_cache(maxsize=1)
+def _client(path):
+    return chromadb.PersistentClient(path=path)
 def collection():
     p=ROOT/'data/chroma';p.mkdir(parents=True,exist_ok=True)
-    return chromadb.PersistentClient(path=str(p)).get_or_create_collection('chat_chunks',metadata={'hnsw:space':'cosine'})
+    return _client(str(p)).get_or_create_collection('chat_chunks',metadata={'hnsw:space':'cosine'})
 def embed(texts):
     from src import llm
     result=llm.embed(model=cfg()['models']['embed'],input=texts)

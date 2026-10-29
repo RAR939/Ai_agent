@@ -1,0 +1,8 @@
+# Настройки Streamlit для сервера: слушаем только локальный адрес (доступ через SSH-туннель или обратный прокси)
+[server]
+headless = true
+address = "127.0.0.1"
+port = 8501
+
+[browser]
+gatherUsageStats = false
