@@ -2,7 +2,7 @@ from functools import lru_cache
 from datetime import datetime,timedelta
 from src.schemas import Deadline,SearchHit
 from .search import search
-from .common import cfg, messages
+from .common import cfg, messages, min_score
 
 def get_discussion(deadline: Deadline, top_k: int = 5) -> list[SearchHit]:
     chat=deadline.source_msg.split(':')[0]
@@ -17,4 +17,4 @@ def _discussion(serialized,chat,top_k):
     query=f'{deadline.discipline} {deadline.task} требования отчёт оформление защита как сдавать {deadline.due_text}'
     results=search(query,chat=chat,date_from=lo,date_to=hi,top_k=8)
     excluded={deadline.source_msg}
-    return [h for h in results if set(h.msg_ids)-excluded and h.score>=cfg()['retrieval'].get('min_score',0.3)][:top_k]
+    return [h for h in results if set(h.msg_ids)-excluded and h.score>=min_score()][:top_k]
