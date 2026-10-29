@@ -27,6 +27,8 @@ def test_load_chat_falls_back_to_fixture_sorted():
 
 
 def test_load_chat_prefers_clean_file(tmp_path, monkeypatch):
+    import src.ingest.store as store
+    monkeypatch.delattr(store, "load_messages", raising=False)   # запасной путь: хранилища (или заглушки) нет
     (tmp_path / "data" / "clean").mkdir(parents=True)
     m = Message(id="x:2", chat="x", ts="2026-10-20T10:00:00+03:00", author="STAROSTA",
                 role="starosta", text="b", src="s")
