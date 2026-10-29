@@ -371,3 +371,16 @@ def test_stub_files_do_not_shadow_real_ones():
     assert not getattr(provider, "IS_STUB", False)
     for name in ("db", "pipeline", "schedule_query"):
         assert not getattr(importlib.import_module(f"src.tracker.{name}"), "IS_STUB", False), name
+
+
+def test_stub_file_abs_path_prefers_real_export(tmp_path, monkeypatch):
+    """Файл из data/raw/<чат>/<path> важнее файла мини-чата; без него берётся мини-чат."""
+    store = _stub("src.ingest.store")
+    from src import _fixture_data as fx
+    f = store.get_attachments("elektro:1010")[0]
+    assert pathlib.Path(store.file_abs_path(f)) == fx.FILES_DIR / "lab2_elektro.pdf"
+    monkeypatch.setattr(fx, "ROOT", tmp_path)
+    real = tmp_path / "data" / "raw" / "elektro" / "files"
+    real.mkdir(parents=True)
+    (real / "lab2_elektro.pdf").write_bytes(b"%PDF-1.4 real export")
+    assert pathlib.Path(store.file_abs_path(f)) == real / "lab2_elektro.pdf"
