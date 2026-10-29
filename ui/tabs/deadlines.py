@@ -3,22 +3,9 @@ from datetime import date, datetime
 import streamlit as st
 from streamlit_calendar import calendar
 
+from ui.common import dcolor, dname
+from ui.tabs.card import render_card
 
-DISCIPLINE_NAMES = {
-    "electro": "Электротехника",
-    "probability": "Теория вероятностей",
-    "data_models": "Модели данных",
-    "programming": "Программирование",
-    "math": "Математика",
-}
-
-DISCIPLINE_COLORS = {
-    "electro": "#4F46E5",
-    "probability": "#0891B2",
-    "data_models": "#DC2626",
-    "programming": "#7C3AED",
-    "math": "#059669",
-}
 
 PENDING_REASONS = {
     "low_confidence": "Низкая уверенность агента",
@@ -121,10 +108,7 @@ def render_deadlines(provider):
     for item in pending:
         candidate = item.candidate
 
-        discipline_name = DISCIPLINE_NAMES.get(
-            candidate.discipline,
-            candidate.discipline,
-        )
+        discipline_name = dname(candidate.discipline)
 
         with st.container(border=True):
             st.markdown(
@@ -218,10 +202,7 @@ def render_deadlines(provider):
             break
 
     if deadline_with_history and history:
-        discipline_name = DISCIPLINE_NAMES.get(
-            deadline_with_history.discipline,
-            deadline_with_history.discipline,
-        )
+        discipline_name = dname(deadline_with_history.discipline)
 
         with st.container(border=True):
             st.markdown(
@@ -293,13 +274,11 @@ def render_deadlines(provider):
 
         events.append(
             {
+                "id": str(deadline.id),
                 "title": title,
                 "start": deadline.due_at[:10],
                 "allDay": True,
-                "color": DISCIPLINE_COLORS.get(
-                    deadline.discipline,
-                    "#4F46E5",
-                ),
+                "color": dcolor(deadline.discipline),
             }
         )
 
@@ -308,6 +287,8 @@ def render_deadlines(provider):
         "initialDate": date.today().isoformat(),
         "height": 470,
         "locale": "ru",
+        "firstDay": 1,
+        "buttonText": {"today": "сегодня", "month": "месяц", "week": "неделя", "list": "список"},
         "headerToolbar": {
             "left": "prev,next today",
             "center": "title",
@@ -319,8 +300,39 @@ def render_deadlines(provider):
         },
     }
 
-    calendar(
+    clicked = calendar(
         events=events,
         options=calendar_options,
+        callbacks=["eventClick"],
         key="provider_deadline_calendar",
     )
+
+    # ---------------------------------------
+    # Карточка задания
+    # ---------------------------------------
+    st.divider()
+    st.subheader("🗂️ Карточка задания")
+
+    options = {d.id: d for d in deadlines if d.id is not None}
+
+    event = (clicked or {}).get("eventClick", {}).get("event", {})
+    clicked_id = int(event["id"]) if str(event.get("id", "")).isdigit() else None
+    if clicked_id in options and clicked_id != st.session_state.get("card_clicked_id"):
+        st.session_state["card_clicked_id"] = clicked_id      # новый клик выбирает задание
+        st.session_state["card_deadline_id"] = clicked_id
+
+    if not options:
+        st.info("Пока нет заданий.")
+    else:
+        if st.session_state.get("card_deadline_id") not in options:
+            st.session_state.pop("card_deadline_id", None)   # задание могло исчезнуть из списка
+        selected = st.selectbox(
+            "Задание",
+            list(options),
+            key="card_deadline_id",
+            format_func=lambda i: (
+                f"{options[i].task} · {dname(options[i].discipline)} · "
+                f"{short_date(options[i].due_at)}"
+            ),
+        )
+        render_card(provider, selected)

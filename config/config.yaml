@@ -49,6 +49,7 @@ schedule:
 agent:
   max_steps: 5
   timeout_sec: 120
+  prompt_version: "agent_v2" # файл config/prompts/<версия>.txt; пишется в лог трассы
   mode: "llm"                # llm | rules (запасной режим: маршрутизация по ключевым словам)
   routing_rules:             # инструмент: основы слов для режима rules
     list_deadlines: ["сда", "срок", "дедлайн", "горит", "когда"]

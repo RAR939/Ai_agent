@@ -4,6 +4,7 @@
 src/schemas.py. Контрактные функции (docs/contracts.md, раздел 4) описаны первыми,
 вспомогательные для остальных модулей трекера (отмечены «доп.») ниже.
 """
+import os
 import sqlite3
 import threading
 from contextlib import contextmanager
@@ -40,6 +41,8 @@ def set_db_path(path: str | None) -> None:
 def _db_path() -> str:
     if _path_override is not None:
         return _path_override
+    if os.environ.get("HELPER_DB"):          # путь к базе из окружения (тесты, несколько копий приложения)
+        return os.environ["HELPER_DB"]
     rel = common.cfg()["paths"]["db"]
     p = Path(rel)
     return str(p if p.is_absolute() else common.ROOT / p)
@@ -335,6 +338,15 @@ def mark_processed(msg_id: str, had_deadline: bool) -> None:
     with _connect() as conn:
         conn.execute("INSERT OR REPLACE INTO processed_msgs(msg_id, processed_at, had_deadline) "
                      "VALUES (?,?,?)", (msg_id, common.now_iso(), int(had_deadline)))
+
+
+def last_processed(chat: str) -> str | None:
+    """Время последней обработки сообщения чата конвейером (None, если ещё не обрабатывали)."""
+    prefix = f"{chat}:"
+    with _connect() as conn:
+        row = conn.execute("SELECT MAX(processed_at) AS t FROM processed_msgs "
+                           "WHERE substr(msg_id, 1, ?) = ?", (len(prefix), prefix)).fetchone()
+    return row["t"]
 
 
 def deadline_msg_ids(chat: str) -> set[str]:
