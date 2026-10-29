@@ -4,14 +4,7 @@ from pathlib import Path
 
 import streamlit as st
 
-
-DISCIPLINE_NAMES = {
-    "electro": "⚡ Электротехника",
-    "probability": "📊 Теория вероятностей",
-    "data_models": "🗃️ Модели данных",
-    "programming": "💻 Программирование",
-    "math": "📐 Математика",
-}
+from ui.common import dlabel
 
 
 LESSON_TYPE_NAMES = {
@@ -41,10 +34,7 @@ def render_lesson(lesson):
     start = parse_datetime(lesson.start)
     end = parse_datetime(lesson.end)
 
-    discipline = DISCIPLINE_NAMES.get(
-        lesson.discipline,
-        lesson.discipline,
-    )
+    discipline = dlabel(lesson.discipline)
 
     lesson_type = LESSON_TYPE_NAMES.get(
         lesson.lesson_type,
@@ -150,10 +140,7 @@ def render_schedule(provider):
                                 f"{end.strftime('%H:%M')}"
                             ),
                             "Дисциплина": (
-                                DISCIPLINE_NAMES.get(
-                                    lesson.discipline,
-                                    lesson.discipline,
-                                )
+                                dlabel(lesson.discipline)
                             ),
                             "Тип": (
                                 LESSON_TYPE_NAMES.get(

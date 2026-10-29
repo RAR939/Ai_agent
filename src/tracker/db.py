@@ -337,6 +337,15 @@ def mark_processed(msg_id: str, had_deadline: bool) -> None:
                      "VALUES (?,?,?)", (msg_id, common.now_iso(), int(had_deadline)))
 
 
+def last_processed(chat: str) -> str | None:
+    """Время последней обработки сообщения чата конвейером (None, если ещё не обрабатывали)."""
+    prefix = f"{chat}:"
+    with _connect() as conn:
+        row = conn.execute("SELECT MAX(processed_at) AS t FROM processed_msgs "
+                           "WHERE substr(msg_id, 1, ?) = ?", (len(prefix), prefix)).fetchone()
+    return row["t"]
+
+
 def deadline_msg_ids(chat: str) -> set[str]:
     """Сообщения чата, в которых модель нашла срок (нужны предфильтру для ответов)."""
     prefix = f"{chat}:"
