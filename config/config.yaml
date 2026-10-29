@@ -1,19 +1,19 @@
-# path/to/config/config.yaml
+# Все настройки без правки кода (docs/contracts.md, раздел 6).
 models:
   llm: "qwen3:8b"
   embed: "bge-m3"
-  renamer: "BAAI/bge-reranker-v2-m3"
+  reranker: "BAAI/bge-reranker-v2-m3"
   temperature: 0.1
 
 retrieval:
-  chunk_strategy: "window"
+  chunk_strategy: "window"   # window | thread | day
   window_size: 10
   window_step: 5
   max_chunk_chars: 1800
   candidates: 20
   rerank_top: 15
   top_k: 5
-  min_score: 0.3
+  min_score: 0.3             # порог релевантности
   use_reranker: true
   bm25: {k1: 1.5, b: 0.75}
 
@@ -46,12 +46,11 @@ schedule:
   first_week_parity: "odd"
   holidays: []
 
-# path/to/config/config.yaml
 agent:
   max_steps: 5
-  timeout_sec: 60
-  mode: "llm"
-  routing_rules:
+  timeout_sec: 120
+  mode: "llm"                # llm | rules (запасной режим: маршрутизация по ключевым словам)
+  routing_rules:             # инструмент: основы слов для режима rules
     list_deadlines: ["сда", "срок", "дедлайн", "горит", "когда"]
     get_schedule: ["пар", "расписани", "заняти", "завтра"]
 
