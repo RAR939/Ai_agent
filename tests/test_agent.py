@@ -23,7 +23,7 @@ async def test_agent_tool_call_and_answer(mock_stdio_client, mock_session_class,
     mock_tool = MagicMock()
     mock_tool.name = "list_deadlines"
     mock_tool.description = "Test description"
-    mock_tool.inputSchema = {"type": "object", "properties": {}}
+    mock_tool.input_schema = {"type": "object", "properties": {}}
     mock_session.list_tools.return_value = MagicMock(tools=[mock_tool])
 
     # Мокаем call_tool
@@ -79,7 +79,7 @@ async def test_agent_loop_protection(mock_stdio_client, mock_session_class, mock
     mock_tool = MagicMock()
     mock_tool.name = "search_messages"
     mock_tool.description = "Test"
-    mock_tool.inputSchema = {}
+    mock_tool.input_schema = {}
     mock_session.list_tools.return_value = MagicMock(tools=[mock_tool])
 
     # ДОБАВЛЯЕМ МОК ДЛЯ ВЫЗОВА ИНСТРУМЕНТА
@@ -146,7 +146,7 @@ def _mock_session(monkeypatch_target, tool_text):
     session = AsyncMock()
     mock_session_class.return_value.__aenter__.return_value = session
     tool = MagicMock()
-    tool.name, tool.description, tool.inputSchema = "add_deadline", "d", {"type": "object", "properties": {}}
+    tool.name, tool.description, tool.input_schema = "add_deadline", "d", {"type": "object", "properties": {}}
     session.list_tools.return_value = MagicMock(tools=[tool])
     session.call_tool.return_value = MagicMock(content=[MagicMock(text=tool_text)])
     call = MagicMock()
@@ -174,3 +174,12 @@ async def test_agent_collects_pending_ids_and_works_from_any_folder(mock_stdio, 
     assert params.args == ["-m", "src.mcp_server"] and os.path.isdir(params.cwd)
     assert os.path.exists(os.path.join(params.cwd, "logs", "agent_trace.jsonl"))   # лог рядом с проектом, не в cwd
     assert not (tmp_path / "logs").exists()
+
+
+def test_input_schema_supports_both_mcp_versions():
+    from types import SimpleNamespace
+    schema = {"type": "object", "properties": {"q": {"type": "string"}}}
+    assert agent_mod._input_schema(SimpleNamespace(input_schema=schema)) == schema        # mcp 2.x
+    assert agent_mod._input_schema(SimpleNamespace(inputSchema=schema)) == schema         # mcp 1.x
+    assert agent_mod._input_schema(SimpleNamespace()) == {"type": "object", "properties": {}}
+    assert agent_mod._input_schema(SimpleNamespace(input_schema=MagicMock())) == {"type": "object", "properties": {}}

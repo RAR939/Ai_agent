@@ -4,6 +4,7 @@
 src/schemas.py. Контрактные функции (docs/contracts.md, раздел 4) описаны первыми,
 вспомогательные для остальных модулей трекера (отмечены «доп.») ниже.
 """
+import os
 import sqlite3
 import threading
 from contextlib import contextmanager
@@ -40,6 +41,8 @@ def set_db_path(path: str | None) -> None:
 def _db_path() -> str:
     if _path_override is not None:
         return _path_override
+    if os.environ.get("HELPER_DB"):          # путь к базе из окружения (тесты, несколько копий приложения)
+        return os.environ["HELPER_DB"]
     rel = common.cfg()["paths"]["db"]
     p = Path(rel)
     return str(p if p.is_absolute() else common.ROOT / p)
