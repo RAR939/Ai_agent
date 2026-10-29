@@ -217,3 +217,157 @@ def test_schemas_match_contract_doc():
                    (_norm(other.annotation), other.is_required(), other.default), f"{name}.{f}"
     for alias in ("Role", "Kind", "Status", "LessonType", "ISO"):
         assert ns[alias] == getattr(schemas, alias), alias
+
+
+# ---------- сигнатуры функций из раздела 4 документа ----------
+import ast  # noqa: E402
+import importlib  # noqa: E402
+import inspect  # noqa: E402
+
+from src.schemas import Answer, MessageContext  # noqa: E402
+
+# параметры сверх контракта, о которых договорились (только необязательные)
+KNOWN_EXTRA_PARAMS = {"src.agent.run_agent": {"deterministic"}}
+
+
+def _contract_functions() -> list[tuple[str, str, ast.FunctionDef | ast.AsyncFunctionDef]]:
+    """(модуль, имя вида «функция» или «Класс.метод», разобранное определение) из раздела 4."""
+    text = CONTRACTS.read_text(encoding="utf-8")
+    section = text[text.index("## 4. Интерфейсы модулей"):text.index("## 5.")]
+    found, module, cls = [], None, None
+    for block in re.findall(r"```\n(.*?)\n```", section, flags=re.S):
+        lines, i = block.splitlines(), 0
+        while i < len(lines):
+            line = lines[i]
+            m = re.match(r"# ((?:src|ui)/[\w/]+)\.py\s*$", line)
+            if m:
+                module, cls = m.group(1).replace("/", "."), None
+            elif line.startswith("class "):
+                cls = re.match(r"class (\w+)", line).group(1)
+                if cls == "Provider":     # у блока интерфейса нет строки «# ui/provider.py»
+                    module = "ui.provider"
+            elif re.match(r"\s*(async )?def ", line):
+                sig = line
+                while sig.count("(") != sig.count(")"):   # сигнатура может идти на нескольких строках
+                    i += 1
+                    sig += "\n" + lines[i]
+                sig = re.sub(r"\s+#.*$", "", sig, flags=re.M).rstrip()
+                node = ast.parse(sig.strip() + ":\n    pass").body[0]
+                found.append((module, f"{cls}.{node.name}" if cls else node.name, node))
+            i += 1
+    return found
+
+
+CONTRACT_FUNCTIONS = _contract_functions()
+
+
+def test_contract_functions_found():
+    assert len(CONTRACT_FUNCTIONS) >= 50
+    assert {"load_config", "search", "run_agent", "Provider.ask"} <= {n for _, n, _ in CONTRACT_FUNCTIONS}
+
+
+def _params(node) -> list[tuple[str, object]]:
+    """Параметры без self: (имя, значение по умолчанию или ... если его нет)."""
+    args = node.args.args
+    defaults = [...] * (len(args) - len(node.args.defaults)) + [ast.literal_eval(d) for d in node.args.defaults]
+    return [(a.arg, d) for a, d in zip(args, defaults) if a.arg != "self"]
+
+
+@pytest.mark.parametrize("module,name,node", CONTRACT_FUNCTIONS, ids=lambda v: v if isinstance(v, str) else "")
+def test_function_signature_matches_contract(module, name, node):
+    """Есть функция, значит её параметры совпадают с контрактом; нет функции, значит ещё не написана."""
+    try:
+        mod = importlib.import_module(module)
+    except ImportError as e:
+        pytest.skip(f"модуль не импортируется: {e}")
+    obj = mod
+    for part in name.split("."):
+        obj = getattr(obj, part, None)
+        if obj is None:
+            pytest.skip("ещё не реализовано")
+    assert inspect.iscoroutinefunction(obj) == isinstance(node, ast.AsyncFunctionDef), name
+    real = [(p.name, ... if p.default is inspect.Parameter.empty else p.default)
+            for p in inspect.signature(obj).parameters.values() if p.name != "self"
+            and p.kind not in (p.VAR_POSITIONAL, p.VAR_KEYWORD)]
+    want = _params(node)
+    extra = KNOWN_EXTRA_PARAMS.get(f"{module}.{name}", set())
+    core = [p for p in real if p[0] not in extra]
+    assert [n for n, _ in core] == [n for n, _ in want], f"{module}.{name}: имена и порядок параметров"
+    for (n, got), (_, wanted) in zip(core, want):
+        # допустимо сделать обязательный параметр необязательным (совместимо), менять значение по умолчанию нельзя
+        assert wanted is ... or got == wanted, f"{module}.{name}: значение по умолчанию {n}"
+    assert all(d is not ... for n, d in real if n in extra)      # лишние параметры только необязательные
+
+
+# ---------- заглушки возвращают нужные типы ----------
+def _stub(module_name: str):
+    mod = importlib.import_module(module_name)
+    if not getattr(mod, "IS_STUB", False):
+        pytest.skip("реальная реализация, не заглушка")
+    return mod
+
+
+def _list_of(value, cls) -> bool:
+    return isinstance(value, list) and all(isinstance(v, cls) for v in value)
+
+
+def test_stub_store_types():
+    store = _stub("src.ingest.store")
+    msgs = store.load_messages("elektro")
+    assert msgs and _list_of(msgs, Message) and {m.chat for m in msgs} == {"elektro"}
+    assert store.load_messages("нет-такого") == []
+    assert store.list_chats() == ["algo", "elektro", "models"]
+    assert isinstance(store.get_message("elektro:1010"), Message)
+    with pytest.raises(KeyError, match="не найдено"):
+        store.get_message("elektro:0")
+    ctx = store.get_context("elektro:1031", before=2, after=1)
+    assert isinstance(ctx, MessageContext) and ctx.target.id == "elektro:1031"
+    assert [m.id for m in ctx.before] == ["elektro:1023", "elektro:1030"] and len(ctx.after) == 1
+    assert store.get_context("elektro:1001").before == []
+    files = store.get_attachments("elektro:1010")
+    assert _list_of(files, AttachedFile) and len(files) == 1 and store.get_attachments("elektro:1001") == []
+    assert pathlib.Path(store.file_abs_path(files[0])).is_file()
+    assert store.save_messages is not None
+
+
+def test_stub_search_types_and_filters():
+    search = _stub("src.index.search").search
+    hits = search("лаба")
+    assert hits and _list_of(hits, SearchHit) and all(len(h.text) <= 1500 for h in hits)
+    assert [h.score for h in hits] == sorted((h.score for h in hits), reverse=True)
+    assert search("   ") == [] and search("лаба", top_k=0) == [] and len(search("лаба", top_k=1)) == 1
+    assert {h.chat for h in search("лаба", chat="models")} == {"models"}
+    assert search("лаба", chat="нет-такого") == []
+    assert search("лаба", role="teacher") == [h for h in hits if "teacher" in h.roles]
+    assert search("лаба", date_from="2027-01-01") == [] and search("лаба", date_to="2020-01-01") == []
+    assert {h.chunk_id for h in search("лаба", date_from="2026-10-21", date_to="2026-10-23")} == {
+        "elektro:1040-1041", "algo:3020-3022"}                                            # границы включаются
+    assert len(search("лаба", top_k=100)) <= 8
+
+
+def test_stub_answer_types():
+    answer = _stub("src.index.answer").answer
+    ok = answer("когда сдавать лабу")
+    assert isinstance(ok, Answer) and not ok.refused and _list_of(ok.sources, SearchHit)
+    assert ok.prompt_version == "answer_v1"
+    no = answer("когда сдавать лабу", chat="нет-такого")
+    assert no.refused and no.sources == [] and no.text == "В материалах этого нет"
+
+
+def test_stub_discussion_types():
+    mod = _stub("src.index.discussion")
+    lab2 = Deadline(discipline="elektro", kind="lab", task="Лаб.2", due_at="2026-10-30T23:59:00+03:00",
+                    due_text="до пятницы", source_msg="elektro:1010", confidence=0.93)
+    found = mod.get_discussion(lab2)
+    assert found and _list_of(found, SearchHit) and {h.chat for h in found} == {"elektro"}
+    assert len(mod.get_discussion(lab2, top_k=1)) == 1
+
+
+def test_stub_files_do_not_shadow_real_ones():
+    """Заглушка отмечена IS_STUB, а реальные модули ролей 4, 5 и 6 заглушками не подменялись."""
+    agent = importlib.import_module("src.agent")
+    assert not getattr(agent, "IS_STUB", False) and inspect.iscoroutinefunction(agent.run_agent)
+    provider = importlib.import_module("ui.provider")
+    assert not getattr(provider, "IS_STUB", False)
+    for name in ("db", "pipeline", "schedule_query"):
+        assert not getattr(importlib.import_module(f"src.tracker.{name}"), "IS_STUB", False), name
