@@ -4,6 +4,7 @@
 """
 import asyncio
 import json
+import os
 import sys
 import time
 from datetime import datetime, timezone, timedelta
@@ -46,6 +47,12 @@ def _route_by_rules(question: str, rules: dict) -> str:
     return "search_messages"  # По умолчанию
 
 
+def _input_schema(tool) -> dict:
+    """Схема параметров инструмента: в mcp 2.x поле input_schema, в 1.x inputSchema."""
+    schema = getattr(tool, "input_schema", None) or getattr(tool, "inputSchema", None)
+    return schema if isinstance(schema, dict) else {"type": "object", "properties": {}}
+
+
 def _rules_args(tool_name: str, question: str) -> dict:
     """Простые аргументы для запасного режима (без участия модели)."""
     if tool_name == "search_messages":
@@ -80,6 +87,7 @@ async def run_agent(question: str, history: list[dict], deterministic: bool = Fa
         command=sys.executable,
         args=["-m", "src.mcp_server"],
         cwd=str(ROOT),
+        env=dict(os.environ),            # OLLAMA_HOST, HELPER_DB и т. п. должны дойти до сервера
     )
 
     trace: list[ToolCall] = []
@@ -95,7 +103,7 @@ async def run_agent(question: str, history: list[dict], deterministic: bool = Fa
             ollama_tools = [
                 {
                     "type": "function",
-                    "function": {"name": t.name, "description": t.description, "parameters": t.inputSchema}
+                    "function": {"name": t.name, "description": t.description, "parameters": _input_schema(t)}
                 } for t in tools
             ]
 
