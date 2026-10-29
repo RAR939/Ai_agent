@@ -1,26 +1,30 @@
-# path/to/src/agent.py
 """
 Агентный цикл (Роль 5). Подключение к MCP-серверу и вызов модели Ollama.
+Работает из любой папки: пути считаются от корня репозитория, настройки берутся из load_config().
 """
 import asyncio
 import json
-import os
 import sys
 import time
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 
 import ollama
-import yaml
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
+from src.config import load_config
 from src.schemas import AgentResult, ToolCall, SearchHit
 
 MSK = timezone(timedelta(hours=3))
+ROOT = Path(__file__).resolve().parent.parent
+PROMPT_PATH = ROOT / "config" / "prompts" / "agent_v1.txt"
 
 
 def _log_trace(question: str, trace: list[ToolCall], answer: str, total_sec: float, model: str):
-    os.makedirs("logs", exist_ok=True)
+    logs = Path(load_config()["paths"]["logs"])
+    logs = logs if logs.is_absolute() else ROOT / logs
+    logs.mkdir(parents=True, exist_ok=True)
     log_entry = {
         "ts": datetime.now(MSK).isoformat(timespec='seconds'),
         "question": question,
@@ -29,7 +33,7 @@ def _log_trace(question: str, trace: list[ToolCall], answer: str, total_sec: flo
         "total_sec": round(total_sec, 2),
         "model": model
     }
-    with open("logs/agent_trace.jsonl", "a", encoding="utf-8") as f:
+    with open(logs / "agent_trace.jsonl", "a", encoding="utf-8") as f:
         f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
 
 
@@ -42,11 +46,27 @@ def _route_by_rules(question: str, rules: dict) -> str:
     return "search_messages"  # По умолчанию
 
 
+def _rules_args(tool_name: str, question: str) -> dict:
+    """Простые аргументы для запасного режима (без участия модели)."""
+    if tool_name == "search_messages":
+        return {"query": question}
+    if tool_name == "get_schedule":
+        today = datetime.now(MSK).date()
+        return {"date_from": today.isoformat(), "date_to": (today + timedelta(days=7)).isoformat()}
+    return {}
+
+
+def _pending_id(parsed) -> int | None:
+    """id записи в очереди подтверждения, если инструмент вернул PendingItem."""
+    if isinstance(parsed, dict) and {"candidate", "reason", "id"} <= parsed.keys():
+        return parsed["id"]
+    return None
+
+
 async def run_agent(question: str, history: list[dict], deterministic: bool = False) -> AgentResult:
     start_total = time.time()
 
-    with open("config/config.yaml", "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
+    config = load_config()
     max_steps = config["agent"]["max_steps"]
     timeout_sec = config["agent"]["timeout_sec"]
     model_name = config["models"]["llm"]
@@ -54,12 +74,12 @@ async def run_agent(question: str, history: list[dict], deterministic: bool = Fa
     agent_mode = config["agent"].get("mode", "llm")
     routing_rules = config["agent"].get("routing_rules", {})
 
-    with open("config/prompts/agent_v1.txt", "r", encoding="utf-8") as f:
-        system_prompt = f.read()
+    system_prompt = PROMPT_PATH.read_text(encoding="utf-8")
 
     params = StdioServerParameters(
         command=sys.executable,
-        args=["src/mcp_server.py"],
+        args=["-m", "src.mcp_server"],
+        cwd=str(ROOT),
     )
 
     trace: list[ToolCall] = []
@@ -89,7 +109,7 @@ async def run_agent(question: str, history: list[dict], deterministic: bool = Fa
                 print(f"[Роутер] Выбран инструмент: {tool_name}", file=sys.stderr)
 
                 # Формируем аргументы (очень простые, чтобы не усложнять)
-                args = {"query": question} if tool_name == "search_messages" else {}
+                args = _rules_args(tool_name, question)
 
                 start_time = time.time()
                 error = None
@@ -170,8 +190,8 @@ async def run_agent(question: str, history: list[dict], deterministic: bool = Fa
                                 if tool_name == "search_messages" and isinstance(parsed, list):
                                     for item in parsed:
                                         sources.append(SearchHit.model_validate(item))
-                                if isinstance(parsed, dict) and parsed.get("status") == "pending":
-                                    pending_ids.append(parsed["data"]["id"])
+                                if (pid := _pending_id(parsed)) is not None:
+                                    pending_ids.append(pid)
                             except Exception:
                                 pass
 
