@@ -37,6 +37,9 @@ def test_load_real_config():
     assert cfg["tracker"]["attach_window_min"] == 10
     assert set(cfg["disciplines"]) == {"elektro", "models", "algo"}
     assert cfg["roles"]["starosta"] == ["Имя Фамилия как в экспорте"]
+    assert cfg["tracker"]["confidence_threshold"] == 0.7
+    assert "сдавать" in cfg["tracker"]["prefilter_keywords"]   # ключи роли 4
+    assert cfg["schedule"]["semester_end"] == "2026-12-27"
 
 
 def test_changing_config_changes_result(cfg_dir):
@@ -114,11 +117,10 @@ def test_name_and_color():
     assert discipline_name("models") == "Модели данных"
 
 
-@pytest.mark.parametrize("fn", [discipline_name, discipline_color])
-@pytest.mark.parametrize("key", ["nope", "", "ELEKTRO"])
-def test_unknown_key(fn, key):
-    with pytest.raises(KeyError, match="Неизвестная"):
-        fn(key)
+@pytest.mark.parametrize("key", ["nope", "", "ELEKTRO", "нет"])
+def test_unknown_key_is_tolerant(key):
+    assert discipline_name(key) == key
+    assert discipline_color(key) == config.DEFAULT_COLOR
 
 
 def test_edit_is_picked_up(cfg_dir):
@@ -148,6 +150,13 @@ def test_edit_is_picked_up(cfg_dir):
     ("по алгоритмам и структурам данных", "algo"),
     ("всем привет", None),
     ("ахах 😂😂", None),
+    ("elektro", "elektro"),                                      # ключ как алиас
+    ("база данных", "models"),
+    ("ЛР по моделям данных", "models"),
+    ("сдаём ЭТ до пятницы", "elektro"),
+    ("это этот этап", None),                                     # короткие алиасы только целым словом
+    ("электрот", None),
+    ("бдительность", None),
     ("", None),
     ("   ", None),
 ])

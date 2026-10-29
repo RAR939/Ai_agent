@@ -92,19 +92,15 @@ def _disciplines_cached(path: str, mtime_ns: int) -> dict[str, dict]:
 
 
 def discipline_name(key: str) -> str:
-    """"elektro" -> "Электротехника". Неизвестный ключ: KeyError."""
-    try:
-        return _disciplines()[key]["name"]
-    except KeyError:
-        raise KeyError(f"Неизвестная дисциплина: {key!r}") from None
+    """"elektro" -> "Электротехника". Неизвестный ключ возвращается как есть (для показа в интерфейсе)."""
+    item = _disciplines().get(key)
+    return item["name"] if item else key
 
 
 def discipline_color(key: str) -> str:
-    """"elektro" -> "#4c78a8". Неизвестный ключ: KeyError."""
-    try:
-        return _disciplines()[key]["color"]
-    except KeyError:
-        raise KeyError(f"Неизвестная дисциплина: {key!r}") from None
+    """"elektro" -> "#4c78a8". Для неизвестного ключа серый цвет по умолчанию."""
+    item = _disciplines().get(key)
+    return item["color"] if item else DEFAULT_COLOR
 
 
 # ---------- поиск дисциплины в тексте ----------
@@ -124,7 +120,7 @@ def _matcher(key: tuple) -> tuple:
     abbrs: dict[str, str] = {}
     phrases: list[tuple[str, tuple[frozenset[str], ...]]] = []
     for dkey, item in _disciplines().items():
-        for alias in item["aliases"] + [item["name"]]:
+        for alias in item["aliases"] + [item["name"], dkey]:
             if _is_abbr(alias):
                 abbrs[alias] = dkey
             else:
@@ -138,7 +134,8 @@ def find_discipline(text: str) -> str | None:
     """Ключ дисциплины по алиасам в тексте или None.
 
     Склонения учитываются через леммы ("по электротехнике" -> elektro), обычные
-    алиасы без учёта регистра, аббревиатуры (ЭТ) только заглавными. Если найдено
+    алиасы без учёта регистра, аббревиатуры (ЭТ) только заглавными. Ключ дисциплины и её
+    название тоже считаются алиасами. Если найдено
     несколько дисциплин, выигрывает та, у которой больше совпадений, затем та,
     что упомянута раньше.
     """

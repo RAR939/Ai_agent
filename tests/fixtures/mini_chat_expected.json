@@ -1,0 +1,358 @@
+{
+  "_comment": "Синтетический эталон мини-чата (первая версия, роль 4; роли 1 и 2 могут расширить). deadlines: что должна вернуть модель (extract), ожидаемая дата и файлы. state: итоговая база после process_new(elektro) и process_new(models). Расписание для теста: см. tests/test_pipeline.py (fixture lessons).",
+  "deadlines": [
+    {
+      "msg_id": "elektro:1010",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "elektro",
+        "kind": "lab",
+        "task": "Лаб.2",
+        "due_text": "до пятницы",
+        "action": "new",
+        "fuzzy": false,
+        "confidence": 0.95
+      },
+      "due_at_gold": "2026-10-23T23:59:00+03:00",
+      "files_expected": [
+        "elektro:1010:f1"
+      ]
+    },
+    {
+      "msg_id": "elektro:1020",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "elektro",
+        "kind": "lab",
+        "task": "Лаб.3",
+        "due_text": "до 6.11",
+        "action": "new",
+        "fuzzy": false,
+        "confidence": 0.92
+      },
+      "due_at_gold": "2026-11-06T23:59:00+03:00",
+      "files_expected": [
+        "elektro:1021:f1"
+      ]
+    },
+    {
+      "msg_id": "elektro:1031",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "elektro",
+        "kind": "hw",
+        "task": "ДЗ 1",
+        "due_text": "до среды",
+        "action": "new",
+        "fuzzy": false,
+        "confidence": 0.85
+      },
+      "due_at_gold": "2026-10-28T23:59:00+03:00",
+      "files_expected": [
+        "elektro:1032:f1"
+      ]
+    },
+    {
+      "msg_id": "elektro:1040",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "elektro",
+        "kind": "lab",
+        "task": "Лаб.2",
+        "due_text": "на 30.10",
+        "action": "move",
+        "fuzzy": false,
+        "confidence": 0.93
+      },
+      "due_at_gold": "2026-10-30T23:59:00+03:00",
+      "files_expected": [
+        "elektro:1010:f1",
+        "elektro:1041:f1"
+      ]
+    },
+    {
+      "msg_id": "elektro:1050",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "elektro",
+        "kind": "hw",
+        "task": "ДЗ 1",
+        "due_text": null,
+        "action": "cancel",
+        "fuzzy": false,
+        "confidence": 0.92
+      },
+      "due_at_gold": null,
+      "files_expected": []
+    },
+    {
+      "msg_id": "elektro:1060",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "elektro",
+        "kind": "lab",
+        "task": "Лаб.4",
+        "due_text": "на днях",
+        "action": "new",
+        "fuzzy": true,
+        "confidence": 0.8
+      },
+      "due_at_gold": null,
+      "files_expected": []
+    },
+    {
+      "msg_id": "elektro:1070",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "elektro",
+        "kind": "lab",
+        "task": "Лаб.5",
+        "due_text": "на следующей паре по электротехнике",
+        "action": "new",
+        "fuzzy": false,
+        "confidence": 0.88
+      },
+      "due_at_gold": "2026-10-29T08:30:00+03:00",
+      "files_expected": []
+    },
+    {
+      "msg_id": "elektro:1080",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "elektro",
+        "kind": "lab",
+        "task": "Лаб.6",
+        "due_text": "до 12 ноября",
+        "action": "new",
+        "fuzzy": false,
+        "confidence": 0.9
+      },
+      "due_at_gold": "2026-11-12T23:59:00+03:00",
+      "files_expected": []
+    },
+    {
+      "msg_id": "elektro:1090",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "elektro",
+        "kind": "hw",
+        "task": "ДЗ 7",
+        "due_text": "на пятницу",
+        "action": "move",
+        "fuzzy": false,
+        "confidence": 0.9
+      },
+      "due_at_gold": "2026-10-30T23:59:00+03:00",
+      "files_expected": []
+    },
+    {
+      "msg_id": "elektro:1100",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "elektro",
+        "kind": "lab",
+        "task": "Лаб.8",
+        "due_text": "до воскресенья",
+        "action": "new",
+        "fuzzy": false,
+        "confidence": 0.4
+      },
+      "due_at_gold": "2026-11-01T23:59:00+03:00",
+      "files_expected": []
+    },
+    {
+      "msg_id": "elektro:1110",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "elektro",
+        "kind": "lab",
+        "task": "Лаб.2",
+        "due_text": "до 30.10",
+        "action": "move",
+        "fuzzy": false,
+        "confidence": 0.9
+      },
+      "due_at_gold": "2026-10-30T23:59:00+03:00",
+      "files_expected": []
+    },
+    {
+      "msg_id": "models:2001",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "models",
+        "kind": "other",
+        "task": "Курсовая работа этап 1",
+        "due_text": "до 13.11",
+        "action": "new",
+        "fuzzy": false,
+        "confidence": 0.9
+      },
+      "due_at_gold": "2026-11-13T23:59:00+03:00",
+      "files_expected": [
+        "models:2001:f1"
+      ]
+    },
+    {
+      "msg_id": "models:2002",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "models",
+        "kind": "other",
+        "task": "Курсовая работа этап 2",
+        "due_text": "до 4.12",
+        "action": "new",
+        "fuzzy": false,
+        "confidence": 0.9
+      },
+      "due_at_gold": "2026-12-04T23:59:00+03:00",
+      "files_expected": []
+    },
+    {
+      "msg_id": "models:2003",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "models",
+        "kind": "other",
+        "task": "Курсовая",
+        "due_text": "на 20.11",
+        "action": "move",
+        "fuzzy": false,
+        "confidence": 0.9
+      },
+      "due_at_gold": "2026-11-20T23:59:00+03:00",
+      "files_expected": []
+    },
+    {
+      "msg_id": "models:2010",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "models",
+        "kind": "midterm",
+        "task": "Рубежка",
+        "due_text": "в среду",
+        "action": "new",
+        "fuzzy": false,
+        "confidence": 0.9
+      },
+      "due_at_gold": "2026-10-28T23:59:00+03:00",
+      "files_expected": []
+    }
+  ],
+  "state": {
+    "deadlines": [
+      {
+        "source_msg": "elektro:1010",
+        "task": "Лаб.2",
+        "status": "active",
+        "due_at": "2026-10-30T23:59:00+03:00",
+        "fuzzy": false,
+        "files": [
+          "elektro:1010:f1",
+          "elektro:1041:f1"
+        ],
+        "history": [
+          [
+            "2026-10-23T23:59:00+03:00",
+            "2026-10-30T23:59:00+03:00",
+            "elektro:1040"
+          ]
+        ]
+      },
+      {
+        "source_msg": "elektro:1020",
+        "task": "Лаб.3",
+        "status": "active",
+        "due_at": "2026-11-06T23:59:00+03:00",
+        "fuzzy": false,
+        "files": [
+          "elektro:1021:f1"
+        ],
+        "history": []
+      },
+      {
+        "source_msg": "elektro:1031",
+        "task": "ДЗ 1",
+        "status": "cancelled",
+        "due_at": "2026-10-28T23:59:00+03:00",
+        "fuzzy": false,
+        "files": [
+          "elektro:1032:f1"
+        ],
+        "history": []
+      },
+      {
+        "source_msg": "elektro:1060",
+        "task": "Лаб.4",
+        "status": "active",
+        "due_at": null,
+        "fuzzy": true,
+        "files": [],
+        "history": []
+      },
+      {
+        "source_msg": "elektro:1070",
+        "task": "Лаб.5",
+        "status": "active",
+        "due_at": "2026-10-29T08:30:00+03:00",
+        "fuzzy": false,
+        "files": [],
+        "history": []
+      },
+      {
+        "source_msg": "elektro:1080",
+        "task": "Лаб.6",
+        "status": "active",
+        "due_at": "2026-11-12T23:59:00+03:00",
+        "fuzzy": false,
+        "files": [],
+        "history": []
+      },
+      {
+        "source_msg": "models:2001",
+        "task": "Курсовая работа этап 1",
+        "status": "active",
+        "due_at": "2026-11-13T23:59:00+03:00",
+        "fuzzy": false,
+        "files": [
+          "models:2001:f1"
+        ],
+        "history": []
+      },
+      {
+        "source_msg": "models:2002",
+        "task": "Курсовая работа этап 2",
+        "status": "active",
+        "due_at": "2026-12-04T23:59:00+03:00",
+        "fuzzy": false,
+        "files": [],
+        "history": []
+      },
+      {
+        "source_msg": "models:2010",
+        "task": "Рубежка",
+        "status": "active",
+        "due_at": "2026-10-28T23:59:00+03:00",
+        "fuzzy": false,
+        "files": [],
+        "history": []
+      }
+    ],
+    "pending": [
+      {
+        "reason": "no_match_for_move",
+        "source_msg": "elektro:1090",
+        "matched_source": null
+      },
+      {
+        "reason": "low_confidence",
+        "source_msg": "elektro:1100",
+        "matched_source": null
+      },
+      {
+        "reason": "ambiguous_match",
+        "source_msg": "models:2003",
+        "matched_source": "models:2001"
+      }
+    ]
+  }
+}
