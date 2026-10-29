@@ -53,7 +53,7 @@ async def test_agent_answers_from_real_tracker(real_db):
     model = ScriptedModel([("list_deadlines", {"days_ahead": 100000, "discipline": "elektro"}),
                            ("get_attachments", {"deadline_id": real_db})],
                           lambda results: "Лаб.2 до 10.01.2099, файл " + json.loads(results[1])[0]["name"])
-    with patch("src.agent.ollama.chat", side_effect=model):
+    with patch("src.agent.llm.chat", side_effect=model):
         result = await run_agent("Когда сдавать Лаб.2 и какие материалы?", history=[])
     assert result.text == "Лаб.2 до 10.01.2099, файл lab2_elektro.pdf"
     assert [t.tool for t in result.trace] == ["list_deadlines", "get_attachments"] and not any(t.error for t in result.trace)
@@ -65,7 +65,7 @@ async def test_agent_unclear_move_goes_to_confirmation_queue(real_db):
     model = ScriptedModel([("update_deadline", {"id": real_db, "new_due_text": "потом скажу",
                                                 "source_msg": "elektro:1040"})],
                           lambda results: "Перенос ждёт подтверждения.")
-    with patch("src.agent.ollama.chat", side_effect=model):
+    with patch("src.agent.llm.chat", side_effect=model):
         result = await run_agent("Перенеси Лаб.2 когда-нибудь", history=[])
     (pending,) = db.list_pending()
     assert result.pending_ids == [pending.id] and pending.reason == "low_confidence"
@@ -75,7 +75,7 @@ async def test_agent_unclear_move_goes_to_confirmation_queue(real_db):
 async def test_agent_applies_move_with_history(real_db):
     model = ScriptedModel([("update_deadline", {"id": real_db, "new_due_text": "на 30.10",
                                                 "source_msg": "elektro:1040"})], lambda results: "Перенесла.")
-    with patch("src.agent.ollama.chat", side_effect=model):
+    with patch("src.agent.llm.chat", side_effect=model):
         result = await run_agent("Лаб.2 перенесли на 30.10", history=[])
     assert result.pending_ids == [] and db.get_deadline(real_db).due_at == "2026-10-30T23:59:00+03:00"
     (event,) = db.get_history(real_db)
@@ -85,7 +85,7 @@ async def test_agent_applies_move_with_history(real_db):
 async def test_agent_survives_tool_error_json(real_db):
     model = ScriptedModel([("get_attachments", {"deadline_id": 9999})],
                           lambda results: "Такого задания нет: " + json.loads(results[0])["error"])
-    with patch("src.agent.ollama.chat", side_effect=model):
+    with patch("src.agent.llm.chat", side_effect=model):
         result = await run_agent("Файлы к несуществующему заданию", history=[])
     assert result.text.startswith("Такого задания нет: Ошибка получения файлов: Дедлайн не найден")
 
@@ -102,7 +102,7 @@ async def test_rules_mode_calls_real_schedule_tool(real_db):
         resp = MagicMock()
         resp.message.content = "Пар нет."
         return resp
-    with patch("src.agent.load_config", return_value=cfg), patch("src.agent.ollama.chat", side_effect=chat):
+    with patch("src.agent.load_config", return_value=cfg), patch("src.agent.llm.chat", side_effect=chat):
         result = await run_agent("Какие пары завтра?", history=[])
     (call,) = result.trace
     assert call.tool == "get_schedule" and call.error is None and set(call.args) == {"date_from", "date_to"}

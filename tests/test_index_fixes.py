@@ -72,11 +72,11 @@ def test_min_score_depends_on_reranker(monkeypatch, rerank, expected):
 
 
 def _patch_answer(monkeypatch, rerank, hits):
-    import ollama
+    from src import llm
     monkeypatch.setattr(common, "cfg", lambda: _cfg(rerank))
     monkeypatch.setattr(answer_mod, "cfg", lambda: _cfg(rerank))
     monkeypatch.setattr(answer_mod, "search", lambda q, **f: hits)
-    monkeypatch.setattr(ollama, "chat",
+    monkeypatch.setattr(llm, "chat",
                         lambda **kw: {"message": {"content": "До пятницы [21.10, староста]"}})
 
 

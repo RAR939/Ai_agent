@@ -2,7 +2,7 @@
 
 Локальный ИИ-агент с RAG и MCP: читает обезличенные учебные чаты Telegram, отвечает на вопросы со ссылками на источники,
 сам находит дедлайны и переносы, прикрепляет к заданиям файлы из чата и сопоставляет сроки с расписанием.
-Всё работает на ноутбуке без интернета (Ollama, модель до 8B). Подробнее: `docs/project.md`.
+Модель работает через Ollama: на ноутбуке или **на сервере с GPU** (`docs/server_setup.md`), остальное (интерфейс, трекер, база, индекс) на ноутбуке. Подробнее: `docs/project.md`.
 
 ## Быстрый старт (10 минут)
 
@@ -10,6 +10,7 @@
 python -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ollama pull qwen3:8b && ollama pull bge-m3                # на 8 ГБ памяти вместо 8b возьмите qwen3:4b и поправьте config/config.yaml
+# модель на сервере: ssh -N -L 11434:localhost:11434 пользователь@сервер  (docs/server_setup.md), модели качаются на сервере
 python scripts/check_env.py                               # что готово и чего не хватает
 pytest                                                    # тесты не требуют Ollama
 streamlit run ui/app.py                                   # интерфейс, http://localhost:8501
@@ -54,7 +55,7 @@ streamlit run ui/app.py                                   # интерфейс, 
 4. Расписание: вкладка «Расписание» (шаблон Excel: `docs/schedule_template.xlsx`).
 5. Вопросы агенту: вкладка «Чат» или `python -m src.agent "Что у меня горит на этой неделе?"` (из любой папки).
 
-Переменная окружения `HELPER_DB` задаёт путь к базе дедлайнов вместо `paths.db` (тесты, несколько копий приложения); `OLLAMA_HOST` передаётся и серверу инструментов.
+Переменная окружения `HELPER_DB` задаёт путь к базе дедлайнов вместо `paths.db` (тесты, несколько копий приложения); `OLLAMA_HOST` (адрес Ollama, важнее `models.host`) и `OLLAMA_API_KEY` (токен) передаются и серверу инструментов.
 
 Реальные имена участников хранятся в `config/roles.local.yaml` (не в git), шаблон: `config/roles.yaml`.
 

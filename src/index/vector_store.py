@@ -5,8 +5,8 @@ def collection():
     p=ROOT/'data/chroma';p.mkdir(parents=True,exist_ok=True)
     return chromadb.PersistentClient(path=str(p)).get_or_create_collection('chat_chunks',metadata={'hnsw:space':'cosine'})
 def embed(texts):
-    import ollama
-    result=ollama.embed(model=cfg()['models']['embed'],input=texts)
+    from src import llm
+    result=llm.embed(model=cfg()['models']['embed'],input=texts)
     return result['embeddings']
 def upsert(chunks):
     col=collection()

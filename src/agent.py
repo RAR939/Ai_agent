@@ -10,10 +10,10 @@ import time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-import ollama
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
+from src import llm
 from src.config import load_config
 from src.schemas import AgentResult, ToolCall, SearchHit
 
@@ -160,7 +160,7 @@ async def run_agent(question: str, history: list[dict], deterministic: bool = Fa
                     messages.append({"role": "user",
                                      "content": "Сформулируй ответ на основе данных выше. Если данных нет, скажи 'В материалах этого нет'."})
                     try:
-                        response = ollama.chat(model=model_name, messages=messages,
+                        response = llm.chat(model=model_name, messages=messages,
                                                options={"temperature": temperature})
                         final_text = response.message.content or ""
                     except Exception as e:
@@ -174,7 +174,7 @@ async def run_agent(question: str, history: list[dict], deterministic: bool = Fa
                 last_call_signature = None
                 while steps < max_steps:
                     steps += 1
-                    response = ollama.chat(model=model_name, messages=messages, tools=ollama_tools,
+                    response = llm.chat(model=model_name, messages=messages, tools=ollama_tools,
                                            options={"temperature": temperature})
                     msg = response.message
 
