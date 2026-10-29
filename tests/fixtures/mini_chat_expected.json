@@ -1,5 +1,5 @@
 {
-  "_comment": "Синтетический эталон мини-чата (первая версия, роль 4; роли 1 и 2 могут расширить). deadlines: что должна вернуть модель (extract), ожидаемая дата и файлы. state: итоговая база после process_new(elektro) и process_new(models). Расписание для теста: см. tests/test_pipeline.py (fixture lessons).",
+  "_comment": "Синтетический эталон мини-чата. Чаты elektro и models: первая версия роли 4, ids не менять (на них завязан tests/test_pipeline.py). Чат algo (ids 3001+) добавлен ролью 1: файл без подписи, ответ на сообщение с файлом, перенос с файлом в том же сообщении, файл не выгружен, срок со временем, пересланное, размытый срок, отмена, неуверенный срок. deadlines: что должна вернуть модель (extract), ожидаемая дата и файлы (для переноса files_expected это все файлы задания после переноса). state: итоговая база после process_new(elektro) и process_new(models); для algo пока не записан. Необязательное поле note: пояснение к случаю. Сообщения без записи в deadlines не содержат срока (шум, вопросы, «дату сообщу позже»). Расписание для теста: см. tests/test_pipeline.py (fixture lessons).",
   "deadlines": [
     {
       "msg_id": "elektro:1010",
@@ -236,6 +236,169 @@
       },
       "due_at_gold": "2026-10-28T23:59:00+03:00",
       "files_expected": []
+    },
+    {
+      "msg_id": "algo:3003",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "algo",
+        "kind": "lab",
+        "task": "Лаб.1",
+        "due_text": "до 2 ноября",
+        "action": "new",
+        "fuzzy": false,
+        "confidence": 0.95
+      },
+      "due_at_gold": "2026-11-02T23:59:00+03:00",
+      "files_expected": []
+    },
+    {
+      "msg_id": "algo:3010",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "algo",
+        "kind": "hw",
+        "task": "ДЗ 1",
+        "due_text": "до пятницы",
+        "action": "new",
+        "fuzzy": false,
+        "confidence": 0.95
+      },
+      "due_at_gold": "2026-10-23T23:59:00+03:00",
+      "files_expected": [
+        "algo:3011:f1"
+      ],
+      "note": "файл без подписи от того же автора через 4 минуты: same_author_near"
+    },
+    {
+      "msg_id": "algo:3021",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "algo",
+        "kind": "hw",
+        "task": "ДЗ 2",
+        "due_text": "до 5 ноября",
+        "action": "new",
+        "fuzzy": false,
+        "confidence": 0.95
+      },
+      "due_at_gold": "2026-11-05T23:59:00+03:00",
+      "files_expected": [
+        "algo:3020:f1"
+      ],
+      "note": "ответ на сообщение с файлом (текст ответа без названия задания): reply_context"
+    },
+    {
+      "msg_id": "algo:3040",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "algo",
+        "kind": "lab",
+        "task": "Лаб.1",
+        "due_text": "на 9 ноября",
+        "action": "move",
+        "fuzzy": false,
+        "confidence": 0.95
+      },
+      "due_at_gold": "2026-11-09T23:59:00+03:00",
+      "files_expected": [
+        "algo:3040:f1"
+      ],
+      "note": "перенос с новым файлом в том же сообщении: same_message"
+    },
+    {
+      "msg_id": "algo:3050",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "algo",
+        "kind": "hw",
+        "task": "ДЗ 3",
+        "due_text": "до 20 ноября",
+        "action": "new",
+        "fuzzy": false,
+        "confidence": 0.95
+      },
+      "due_at_gold": "2026-11-20T23:59:00+03:00",
+      "files_expected": [],
+      "note": "пересланное сообщение"
+    },
+    {
+      "msg_id": "algo:3060",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "algo",
+        "kind": "hw",
+        "task": "ДЗ 3",
+        "due_text": null,
+        "action": "cancel",
+        "fuzzy": false,
+        "confidence": 0.95
+      },
+      "due_at_gold": null,
+      "files_expected": []
+    },
+    {
+      "msg_id": "algo:3070",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "algo",
+        "kind": "hw",
+        "task": "ДЗ 4",
+        "due_text": "на днях",
+        "action": "new",
+        "fuzzy": true,
+        "confidence": 0.8
+      },
+      "due_at_gold": null,
+      "files_expected": []
+    },
+    {
+      "msg_id": "algo:3080",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "algo",
+        "kind": "lab",
+        "task": "Лаб.2",
+        "due_text": "послезавтра",
+        "action": "new",
+        "fuzzy": false,
+        "confidence": 0.95
+      },
+      "due_at_gold": "2026-10-30T23:59:00+03:00",
+      "files_expected": [],
+      "note": "файл не выгружен при экспорте: вложение не создаётся, files_expected пуст"
+    },
+    {
+      "msg_id": "algo:3090",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "algo",
+        "kind": "midterm",
+        "task": "Контрольная",
+        "due_text": "12 ноября в 10:00",
+        "action": "new",
+        "fuzzy": false,
+        "confidence": 0.95
+      },
+      "due_at_gold": "2026-11-12T10:00:00+03:00",
+      "files_expected": [],
+      "note": "срок с временем: 23:59 не подставляется"
+    },
+    {
+      "msg_id": "algo:3100",
+      "extract": {
+        "has_deadline": true,
+        "discipline": "algo",
+        "kind": "hw",
+        "task": "ДЗ 5",
+        "due_text": "до 15 ноября",
+        "action": "new",
+        "fuzzy": false,
+        "confidence": 0.5
+      },
+      "due_at_gold": "2026-11-15T23:59:00+03:00",
+      "files_expected": [],
+      "note": "неуверенная формулировка студента: ожидается очередь подтверждения"
     }
   ],
   "state": {
