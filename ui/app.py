@@ -16,7 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
 # --------------------------------------------------
 # Импорты проекта
 # --------------------------------------------------
-from ui.provider import MockProvider
+from ui.provider import make_provider
 from ui.tabs.chat import render_chat
 from ui.tabs.deadlines import render_deadlines
 from ui.tabs.schedule import render_schedule
@@ -84,7 +84,7 @@ st.markdown(
 # Провайдер
 # --------------------------------------------------
 if "provider" not in st.session_state:
-    st.session_state.provider = MockProvider()
+    st.session_state.provider = make_provider()
 
 provider = st.session_state.provider
 

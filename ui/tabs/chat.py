@@ -1,34 +1,10 @@
 import streamlit as st
 
-from ui.highlight import find_span, highlight
+from ui.highlight import auto_spans, highlight
 
 
 def build_highlighted_text(text: str) -> str:
-    spans = []
-
-    variants = [
-        ("Электротехника", "discipline"),
-        ("электротехнике", "discipline"),
-        ("Теория вероятностей", "discipline"),
-        ("теории вероятностей", "discipline"),
-        ("Лабораторную работу №2", "task"),
-        ("лабораторную работу №2", "task"),
-        ("Домашнее задание", "task"),
-        ("домашнее задание", "task"),
-        ("до конца недели", "deadline"),
-        ("до понедельника", "deadline"),
-        ("до пятницы", "deadline"),
-    ]
-
-    for value, label in variants:
-        span = find_span(
-            text,
-            value,
-            label,
-        )
-
-        if span is not None:
-            spans.append(span)
+    spans = auto_spans(text)
 
     if not spans:
         return text
