@@ -27,5 +27,7 @@ async def main():
             result = await session.call_tool("list_deadlines", {"discipline": "elektro"})
             print(f"Результат: {result.content[0].text[:200]}...")
 
+
 if __name__ == "__main__":
+    
     asyncio.run(main())
