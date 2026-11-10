@@ -92,6 +92,24 @@ def test_rerun_changes_nothing(lessons, fake):
     assert snapshot(lessons) == before and len(fake.calls) == calls
 
 
+def test_late_reply_file_updates_existing_deadline(lessons, fake, monkeypatch):
+    from src.schemas import Message
+    from src.tracker import common, db
+    from tests.conftest import make_deadline, make_file
+
+    source = Message(id="elektro:10", chat="elektro", ts="2026-10-20T14:00:00+03:00",
+                     author="STAROSTA", role="starosta", text="Лаб.2 сдаём до пятницы", src="m#10")
+    late = Message(id="elektro:11", chat="elektro", ts="2026-10-20T14:30:00+03:00",
+                   author="TEACHER", role="teacher", text="Вот условие", reply_to=source.id,
+                   src="m#11", attachments=[make_file("elektro:11")])
+    monkeypatch.setattr(common, "load_chat", lambda chat: [source])
+    original = db.add_deadline(make_deadline(source_msg=source.id))
+    db.mark_processed(source.id, True)
+    monkeypatch.setattr(common, "load_chat", lambda chat: [source, late])
+    pipeline.process_new("elektro")
+    assert [f.id for f in db.list_files(original)] == ["elektro:11:f1"]
+
+
 def test_files_precision_and_recall(lessons, fake):
     """Карточки заданий содержат ровно ожидаемые файлы (4.9, пункты а–з)."""
     pipeline.process_new("elektro")

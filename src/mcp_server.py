@@ -89,14 +89,15 @@ def _apply(candidate: Deadline, action: str, source: Message) -> Deadline | Pend
 
 # ---------- инструменты ----------
 @mcp.tool()
-def search_messages(query: str, discipline: str | None = None, period_days: int = 30,
+def search_messages(query: str, discipline: str | None = None, period_days: int | None = None,
                     role: str | None = None) -> str:
     """Ищет сообщения в учебных чатах по смыслу. Используй для вопросов о том, что говорили или обсуждали. Не используй для вопросов про сроки сдачи: для них есть list_deadlines."""
     try:
         if not query.strip():
             raise ValueError("Пустой поисковый запрос")
         _check_discipline(discipline)
-        date_from = (common.now() - timedelta(days=max(period_days, 0))).date().isoformat()
+        date_from = ((common.now() - timedelta(days=max(period_days, 0))).date().isoformat()
+                     if period_days is not None else None)
         hits = _search_hits(query=query, discipline=discipline, date_from=date_from, role=role,
                             top_k=SEARCH_TOP_K)
         return _to_json(hits)

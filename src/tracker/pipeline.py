@@ -45,11 +45,24 @@ def process_new(chat_id: str) -> Report:
         m = by_id.get(msg_id)
         return m.ts if m else None
 
+    def link_late_files(msg: Message) -> None:
+        """Revisit existing assignments when a new file arrives after their source."""
+        if not msg.attachments:
+            return
+        for deadline in db.list_deadlines(status="active"):
+            source = by_id.get(deadline.source_msg)
+            if source is None or source.chat != msg.chat:
+                continue
+            for file in attach.collect_files(source, chat_msgs):
+                if file.msg_id == msg.id:
+                    db.attach_files(deadline.id, [file], file.bind or "same_message")
+
     for msg in chat_msgs:
         if msg.id in done:
             continue
         try:
             if not prefilter.looks_like_deadline(msg, by_id, deadline_ids):
+                link_late_files(msg)
                 rep["skipped_prefilter"] += 1
                 db.mark_processed(msg.id, False)
                 rep["processed"] += 1

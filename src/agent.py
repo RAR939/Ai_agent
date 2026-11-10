@@ -155,7 +155,7 @@ async def run_agent(question: str, history: list[dict], deterministic: bool = Fa
                              error=error))
 
                 if not error:
-                    messages.append({"role": "tool", "content": result_text[:3000], "tool_name": tool_name})
+                    messages.append({"role": "tool", "content": result_text, "tool_name": tool_name})
                     # Просим модель сформулировать ответ по результатам
                     messages.append({"role": "user",
                                      "content": "Сформулируй ответ на основе данных выше. Если данных нет, скажи 'В материалах этого нет'."})
@@ -205,7 +205,7 @@ async def run_agent(question: str, history: list[dict], deterministic: bool = Fa
                             error = str(e)
 
                         duration = time.time() - start_time
-                        model_result = result_text[:3000] if not error else json.dumps({"error": error})
+                        model_result = result_text if not error else json.dumps({"error": error})
                         result_preview = result_text[:300] if not error else error
 
                         trace.append(ToolCall(tool=tool_name, args=args, result_preview=result_preview,

@@ -39,10 +39,15 @@ def test_search_passes_filters_and_period(monkeypatch):
 
 
 def test_search_errors(monkeypatch):
-    monkeypatch.setattr(mcp_server, "_search_hits", lambda **kw: [])
+    seen = {}
+    def empty(**kw):
+        seen.update(kw)
+        return []
+    monkeypatch.setattr(mcp_server, "_search_hits", empty)
     assert "Пустой поисковый запрос" in call(mcp_server.search_messages, query="  ")["error"]
     assert "Дисциплина не найдена" in call(mcp_server.search_messages, query="х", discipline="math")["error"]
     assert call(mcp_server.search_messages, query="ничего") == []
+    assert seen["date_from"] is None
 
     def boom(**kw):
         raise RuntimeError("индекс не построен")
