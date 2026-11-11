@@ -10,7 +10,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from schemas import AttachedFile, Message
+from src.schemas import AttachedFile, Message
 from eval.corpus_stats import corpus_stats, write_reports, _load_messages, _html_files, _quality_settings
 
 

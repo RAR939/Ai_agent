@@ -1,11 +1,19 @@
 """Общие фикстуры тестов трекера (роль 4)."""
 import copy
+import os
 
 import pytest
 
 from src import config
 from src.schemas import AttachedFile, Deadline
 from src.tracker import common, db
+
+
+@pytest.fixture(autouse=True)
+def synthetic_chat_for_integration_tests(request, monkeypatch):
+    if request.node.path.name in {"test_common.py", "test_e2e.py", "test_mcp_tools.py",
+                                  "test_pipeline.py", "test_ui.py"}:
+        monkeypatch.setenv("HELPER_TEST_FIXTURE", "1")
 
 
 @pytest.fixture
