@@ -123,8 +123,7 @@ if [[ -f data/clean/synthetic_group.jsonl ]]; then
     .venv/bin/python -m src.index.build --chat synthetic_group
 fi
 if [[ "$run_experiment" == 1 && -f data/labels/search_gold.jsonl ]]; then
-    .venv/bin/python -m eval.search_config_experiment --gold data/labels/search_gold.jsonl \
-        --out data/eval/search_config_results.json
+    bash deploy/run_experiment.sh
 fi
 
 echo "Ready. App URL via SSH tunnel: http://localhost:8501"

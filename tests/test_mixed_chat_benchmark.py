@@ -7,7 +7,7 @@ def test_generated_chat_mixes_subjects_and_social_messages():
     assert set(chats) == {"synthetic_group"}
     messages = chats["synthetic_group"]
     assert len(messages) == 390
-    assert len(gold) == 34
+    assert len(gold) == 82
     assert all(row["chat"] == "synthetic_group" for row in gold)
     ids = {message.id for message in messages}
     assert all(message.reply_to is None or message.reply_to in ids for message in messages)

@@ -3,6 +3,20 @@ from types import SimpleNamespace
 from eval.search_config_experiment import evaluate_hits, summarize
 
 
+def test_checkpoint_exports_partial_results(tmp_path):
+    import json
+    import zipfile
+    from eval.search_config_experiment import checkpoint
+    output = tmp_path / "results.json"
+    (tmp_path / "search_gold.jsonl").write_text('{}\n', encoding="utf-8")
+    partial = {"status": "running", "variants": {"window": {"queries": [1]}}}
+    checkpoint(output, partial)
+    assert json.loads(output.read_text(encoding="utf-8")) == partial
+    with zipfile.ZipFile(output.with_suffix(".zip")) as archive:
+        assert json.loads(archive.read("results.json")) == partial
+        assert "search_gold.jsonl" in archive.namelist()
+
+
 def test_relevance_threshold_changes_hit_and_no_answer_decision():
     hits = [SimpleNamespace(score=0.2, msg_ids=["chat:1"]),
             SimpleNamespace(score=0.9, msg_ids=["chat:2"])]
