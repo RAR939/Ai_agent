@@ -1,4 +1,4 @@
-"""Generate a deterministic, fictional multi-chat retrieval benchmark.
+"""Generate a deterministic, fictional mixed-subject group chat.
 
 Outputs are under data/ (gitignored). No real messages or personal data are used.
 """
@@ -18,7 +18,7 @@ RNG = random.Random(20261111)
 
 CHAT_DATA = {
     "synthetic_elektro": {
-        "topics": ["цепь с двумя источниками", "осциллограмму", "закон Кирхгофа", "макет", "датчик тока"],
+        "topics": ["цепь с двумя источниками", "осциллограмма", "закон Кирхгофа", "макет", "датчик тока"],
         "events": [
             (7, "STAROSTA", "starosta", "По электротехнике ЛР2: отчёт загружаем до 18 сентября, 23:59. Условие сейчас пришлю.", None, "lab2_condition.txt"),
             (8, "STUDENT_1", "student", "Это та, где два источника и таблица измерений?", 7, None),
@@ -26,7 +26,7 @@ CHAT_DATA = {
             (25, "STUDENT_3", "student", "Кто-нибудь помнит, ЛР2 уже надо было сдавать?", None, None),
             (26, "STUDENT_4", "student", "В старом сообщении 18-е, я так и записал.", 25, None),
             (27, "TEACHER_1", "teacher", "Поправка по ЛР2: срок перенесли на 21 сентября до 18:00. Остальные лабораторные без изменений.", 7, None),
-            (28, "STUDENT_3", "student", "О, спасибо. А то я уже собирался ночью отправлять.", 27, None),
+            (28, "STUDENT_3", "student", "О, спасибо. А то я уже хотела ночью отправлять.", 27, None),
             (41, "STAROSTA", "starosta", "ЛР3 по электротехнике сдаём до 2 октября. Не путайте с ЛР2: у третьей работы другая схема.", None, "lab3_template.txt"),
             (42, "STUDENT_2", "student", "Шаблон из прошлого семестра подойдёт?", 41, None),
             (43, "TEACHER_1", "teacher", "Нет, используйте файл из сообщения выше. Там добавлен раздел про погрешность.", 42, None),
@@ -52,13 +52,13 @@ CHAT_DATA = {
         ],
     },
     "synthetic_algo": {
-        "topics": ["дерево поиска", "повороты в AVL", "хеш-таблицу", "сложность обхода", "очередь с приоритетом"],
+        "topics": ["дерево поиска", "повороты в AVL", "хеш-таблица", "сложность обхода", "очередь с приоритетом"],
         "events": [
             (6, "TEACHER_2", "teacher", "По алгоритмам ДЗ1: реализовать AVL-дерево, тесты и короткое описание. Срок 17 сентября до 20:00.", None, "avl_requirements.txt"),
             (7, "STUDENT_6", "student", "Встроенные контейнеры можно для хранения узлов?", 6, None),
             (8, "TEACHER_2", "teacher", "Список для служебных целей можно. Само дерево должно быть вашей реализацией.", 7, None),
             (22, "STAROSTA", "starosta", "Кажется, ДЗ1 передвинули на пятницу, но я ещё уточняю. Пока не считайте это официальным переносом.", None, None),
-            (23, "STUDENT_7", "student", "Я уже всем написал про пятницу 😬", 22, None),
+            (23, "STUDENT_7", "student", "Я уже всем написала про пятницу 😬", 22, None),
             (24, "TEACHER_2", "teacher", "Нет, по ДЗ1 срок прежний: 17 сентября, 20:00. Сообщение о переносе было ошибкой.", 22, None),
             (38, "TEACHER_2", "teacher", "ЛР2 по алгоритмам: сравните хеш-таблицу с деревом на трёх наборах данных. Сдача до 6 октября.", None, "hash_lab2.txt"),
             (39, "STUDENT_8", "student", "Три набора — это разные размеры или разные распределения ключей?", 38, None),
@@ -84,7 +84,7 @@ CHAT_DATA = {
         ],
     },
     "synthetic_models": {
-        "topics": ["нормализацию", "ER-диаграмму", "связи многие-ко-многим", "запрос с JOIN", "транзакции"],
+        "topics": ["нормализация", "ER-диаграмма", "связи многие-ко-многим", "запрос с JOIN", "транзакции"],
         "events": [
             (5, "TEACHER_3", "teacher", "По моделям данных курсовая: первый этап — ER-диаграмма и список сущностей. Дедлайн 25 сентября.", None, "course_stage1.txt"),
             (6, "STUDENT_10", "student", "Сущности можно пока без атрибутов?", 5, None),
@@ -120,57 +120,135 @@ CHAT_DATA = {
 }
 
 FILLERS = [
-    "Кто уже разобрался с {topic}? Я на одном шаге застрял.",
-    "Я сделал {topic}, но результат какой-то странный. Вечером перепроверю.",
-    "На паре про {topic} было, а запись у меня оборвалась. Кто помнит пример?",
-    "Спасибо за объяснение про {topic}, стало чуть понятнее.",
-    "У меня в конспекте про {topic} две разные формулировки, надо сверить.",
-    "Сегодня до {topic} не добрался, после работы посмотрю.",
-    "Кстати, кто-нибудь проверял {topic} на маленьком примере?",
-    "По {topic} вопрос, но это не про срок сдачи — просто не сходится расчёт.",
-    "Я думал, что понял {topic}, а на практике снова запутался.",
-    "Можно после пары пять минут обсудить {topic}?",
-    "Только открыл материалы про {topic}; там ссылка на прошлогодний файл.",
-    "Нашёл опечатку в своём решении про {topic}. Теперь сходится.",
+    "Кто-нибудь разобрался с темой «{topic}»? Не получается повторить пример из лекции.",
+    "По теме «{topic}» у меня результат не совпал с примером. Вечером перепроверю.",
+    "На паре разбирали тему «{topic}», а запись у меня оборвалась. Кто помнит пример?",
+    "Спасибо за объяснение темы «{topic}», теперь стало понятнее.",
+    "В конспекте по теме «{topic}» две разные формулировки. Надо сверить с записью.",
+    "На тему «{topic}» сегодня времени не хватило, после работы посмотрю.",
+    "Кто-нибудь проверял пример по теме «{topic}» на маленьких данных?",
+    "У меня вопрос по теме «{topic}»: расчёт не сходится на последнем шаге.",
+    "Казалось, что тема «{topic}» понятна, но на практике опять появились вопросы.",
+    "Можно после пары пять минут обсудить тему «{topic}»?",
+    "В материалах по теме «{topic}» ссылка на прошлогодний файл. Это нормально?",
+    "В моём решении по теме «{topic}» оказалась опечатка. Теперь всё сходится.",
+    "Кому-нибудь пригодилась запись лекции по теме «{topic}»?",
+    "Мне кажется, в презентации по теме «{topic}» пропущен один шаг.",
+    "Мои заметки по теме «{topic}» лежат в общей папке, если кому-то нужны.",
 ]
+
+SOCIAL = [
+    "Ребят, кто-нибудь идёт сегодня в столовую после второй пары?",
+    "Автобус застрял в пробке, буду через десять минут 🙈",
+    "Кто оставил кружку в 305-й? Она уже третий день там живёт.",
+    "В кофейном автомате снова закончились стаканчики, берите свои.",
+    "А фотки с посвящения кто-нибудь выложит?",
+    "Спасибо за вчерашние конспекты! С меня кофе ☕",
+    "Где сегодня встречаемся после пар?",
+    "У окна лежит чёрная флешка. Заберу с собой и отдам после лекции.",
+    "Погода сегодня как в ноябре, а ведь ещё сентябрь.",
+    "Мне кажется, кот у входа уже знает расписание лучше нас.",
+    "Кто-нибудь смотрел вчерашнюю игру? Концовка вообще неожиданная.",
+    "Скиньте, пожалуйста, фото доски с прошлой пары, у меня всё смазано.",
+    "Ой, не в тот чат 😅",
+    "У кого зарядка для ноутбука с круглым штекером? На полчаса бы.",
+    "Ребят, кто оставил пакет в аудитории? Унесли на вахту.",
+    "Я сегодня без интернета, если что срочное — звоните.",
+    "Всем спасибо, было весело вчера!",
+    "Кто умеет чинить принтер? Он опять жуёт бумагу.",
+    "Перерыв между парами сегодня двадцать минут или десять?",
+    "Ахах, мем про дедлайны очень вовремя.",
+]
+
+SOCIAL_VARIANTS = [
+    "Кто-нибудь видел {thing} в {place}? Не могу найти с утра.",
+    "В {place} сегодня опять забыли {thing}. Кажется, это уже традиция.",
+    "Если будете в {place}, поищите, пожалуйста, {thing}.",
+]
+PLACES = ["библиотеке", "третьей аудитории", "коридоре у деканата", "читальном зале",
+          "холле", "компьютерном классе", "лаборатории", "аудитории 305"]
+THINGS = ["синюю тетрадь", "переходник", "папку с распечатками", "термокружку",
+          "чёрный пенал", "зарядку", "зонт", "флешку"]
+NAMES = {**{f"STUDENT_{n}": name for n, name in enumerate(
+    ["Аня", "Илья", "Маша", "Дима", "Лена", "Кирилл", "Оля", "Саша",
+     "Катя", "Тимур", "Ника", "Паша"], 1)},
+    "STAROSTA": "Арина", "TEACHER_1": "Ирина Викторовна",
+    "TEACHER_2": "Сергей Павлович", "TEACHER_3": "Марина Олеговна"}
+
+
+def social_pool() -> list[str]:
+    pool = list(SOCIAL)
+    for template in SOCIAL_VARIANTS:
+        for place in PLACES:
+            for thing in THINGS:
+                pool.append(template.format(place=place, thing=thing))
+    RNG.shuffle(pool)
+    return pool
 
 
 def generate() -> tuple[dict[str, list[Message]], list[dict]]:
-    chats: dict[str, list[Message]] = {}
-    gold: list[dict] = []
-    for chat, spec in CHAT_DATA.items():
+    chat = "synthetic_group"
+    drafts = []
+    question_drafts = []
+    social = social_pool()
+    used_filler = set()
+    for source, spec in CHAT_DATA.items():
         events = {e[0]: e for e in spec["events"]}
-        messages = []
         previous = None
         for n in range(1, 91):
-            mid = f"{chat}:{n}"
-            ts = START + timedelta(hours=n * 9 + (0 if chat == "synthetic_elektro" else 1 if chat == "synthetic_algo" else 2),
-                                   minutes=RNG.randrange(0, 45))
-            attachments = []
+            old_id = f"{source}:{n}"
+            day, slot = divmod(n - 1, 6)
+            ts = START + timedelta(days=day, hours=slot * 2,
+                                   minutes=(0 if source == "synthetic_elektro" else
+                                            15 if source == "synthetic_algo" else 30) + RNG.randrange(0, 15))
             if n in events:
                 _, author, role, text, reply, filename = events[n]
-                if filename:
-                    content = f"Fictional study handout: {filename}. No real personal data.\n"
-                    attachments = [AttachedFile(id=f"{mid}:f1", msg_id=mid, name=filename,
-                                                ext="txt", size_bytes=len(content.encode("utf-8")),
-                                                path=f"files/{filename}")]
             else:
                 role = "student"
                 author = f"STUDENT_{RNG.randrange(1, 13)}"
                 topic = RNG.choice(spec["topics"])
-                text = RNG.choice(FILLERS).format(topic=topic)
+                if RNG.random() < 0.25:
+                    text = social.pop()
+                else:
+                    options = [template.format(topic=topic) for template in FILLERS]
+                    text = next((candidate for candidate in RNG.sample(options, len(options))
+                                 if candidate not in used_filler), options[0])
+                    used_filler.add(text)
                 reply = previous if RNG.random() < 0.18 else None
                 filename = None
-            messages.append(Message(id=mid, chat=chat, ts=ts.isoformat(timespec="seconds"),
-                                    author=author, role=role, text=text,
-                                    reply_to=f"{chat}:{reply}" if reply else None,
-                                    src=f"synthetic.html#message{n}", attachments=attachments))
+            drafts.append((ts, old_id, author, role, text,
+                           f"{source}:{reply}" if reply else None, filename))
             previous = n
-        chats[chat] = messages
         for query, ids in spec["questions"]:
-            gold.append({"query": query, "chat": chat,
-                         "relevant_msg_ids": [f"{chat}:{n}" for n in ids]})
-    return chats, gold
+            question_drafts.append((query, [f"{source}:{n}" for n in ids]))
+
+    # Independent chatter is interleaved throughout the whole semester, not
+    # confined to a separate block that retrieval could trivially ignore.
+    for n in range(120):
+        ts = START + timedelta(days=RNG.randrange(15), hours=RNG.randrange(0, 12),
+                               minutes=RNG.randrange(60))
+        drafts.append((ts, f"social:{n}", f"STUDENT_{RNG.randrange(1, 13)}",
+                       "student", social.pop(), None, None))
+    drafts.sort(key=lambda item: (item[0], item[1]))
+    ids = {old_id: f"{chat}:{n}" for n, (_, old_id, *_) in enumerate(drafts, 1)}
+    messages = []
+    for ts, old_id, author, role, body, reply, filename in drafts:
+        mid = ids[old_id]
+        attachments = []
+        if filename:
+            content = f"Fictional study handout: {filename}. No real personal data.\n"
+            attachments = [AttachedFile(id=f"{mid}:f1", msg_id=mid, name=filename,
+                                        ext="txt", size_bytes=len(content.encode("utf-8")),
+                                        path=f"files/{filename}")]
+        messages.append(Message(id=mid, chat=chat, ts=ts.isoformat(timespec="seconds"),
+                                author=NAMES[author], role=role, text=body,
+                                reply_to=ids.get(reply),
+                                src=f"synthetic.html#message{mid.split(':')[1]}",
+                                attachments=attachments))
+    gold = [{"query": query, "chat": chat,
+             "relevant_msg_ids": [ids[old_id] for old_id in relevant]}
+            for query, relevant in question_drafts]
+    return {chat: messages}, gold
 
 
 def main() -> None:

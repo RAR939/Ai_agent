@@ -11,12 +11,30 @@ def discipline(text):
     scores={}
     for key, item in data.items():
         aliases=[key]+(item.get('aliases',[]) if isinstance(item,dict) else [])
-        scores[key]=sum(len(re.findall(r'(?<!\w)'+re.escape(str(a))+r'(?!\w)',text,re.I)) for a in aliases)
+        scores[key]=sum(len(re.findall(r'(?<!\w)'+re.escape(str(a))+
+                                       (r'(?!\w)' if str(a).isupper() else r'\w*(?!\w)'),
+                                       text, 0 if str(a).isupper() else re.I)) for a in aliases)
     return max(scores,key=scores.get) if scores and max(scores.values())>0 else None
 
 def chunk_messages(messages, strategy=None):
-    c=cfg()['retrieval']; strategy=strategy or c['chunk_strategy']; limit=c['max_chunk_chars']
+    config=cfg();c=config['retrieval']; strategy=strategy or c['chunk_strategy']; limit=c['max_chunk_chars']
     msgs=sorted(messages,key=lambda m:(m.ts,m.id)); groups=[]
+    by_id={m.id:m for m in msgs}
+    def subject(m):
+        found=discipline(m.text)
+        if found:return found
+        seen={m.id}
+        parent=m.reply_to
+        while parent in by_id and parent not in seen:
+            seen.add(parent)
+            source=by_id[parent]
+            found=discipline(source.text)
+            if found:return found
+            parent=source.reply_to
+        return None
+    subjects={m.id:subject(m) for m in msgs}
+    from .subject_classifier import classify
+    subjects.update(classify(msgs, subjects, config))
     if strategy=='thread':
         byid={m.id:m for m in msgs}; roots=defaultdict(list)
         for m in msgs:
@@ -45,10 +63,11 @@ def chunk_messages(messages, strategy=None):
             cid=f'{batch[0].chat}:{batch[0].id.split(":")[-1]}-{batch[-1].id.split(":")[-1]}'
             if cid in used:return
             used.add(cid)
-            result.append(Chunk(id=cid,chat=batch[0].chat,msg_ids=[m.id for m in batch],ts_from=batch[0].ts,ts_to=batch[-1].ts,roles=list(dict.fromkeys(m.role for m in batch)),discipline=discipline(txt),text=txt))
+            result.append(Chunk(id=cid,chat=batch[0].chat,msg_ids=[m.id for m in batch],ts_from=batch[0].ts,ts_to=batch[-1].ts,roles=list(dict.fromkeys(m.role for m in batch)),discipline=subjects[batch[0].id],text=txt))
         for m in group:
             line=f'[{m.ts[:16]}] {m.role.upper()}: {m.text}'
-            if batch and sum(len(x.text)+40 for x in batch)+len(line)>limit:
+            if batch and (subjects[m.id]!=subjects[batch[0].id] or
+                          sum(len(x.text)+40 for x in batch)+len(line)>limit):
                 emit(batch);batch=[]
             # Длинное сообщение сохраняется целиком: не разрываем предложение/источник.
             batch.append(m)
