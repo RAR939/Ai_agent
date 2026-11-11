@@ -1,6 +1,7 @@
 """Работа с реальными сообщениями из data/clean и вложениями из data/raw."""
 
 import json
+import os
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
@@ -24,6 +25,16 @@ def _clean_path(chat_id: str) -> Path:
         raise ValueError(f"Некорректный ID чата: {chat_id!r}")
 
     return _clean_dir() / f"{chat_id}.jsonl"
+
+
+def _fixture_messages(chat_id: str) -> list[Message]:
+    if os.environ.get("HELPER_TEST_FIXTURE") != "1":
+        return []
+    path = ROOT / "tests" / "fixtures" / "mini_chat.jsonl"
+    if not path.is_file():
+        return []
+    return [m for m in _load_cached(str(path), path.stat().st_mtime_ns, path.stat().st_size)
+            if m.chat == chat_id]
 
 
 def _message_sort_key(message: Message):
@@ -117,7 +128,7 @@ def load_messages(chat_id: str) -> list[Message]:
     path = _clean_path(chat_id)
 
     if not path.is_file():
-        return []
+        return _fixture_messages(chat_id)
 
     stat = path.stat()
 
@@ -142,14 +153,11 @@ def list_chats() -> list[str]:
 
     directory = _clean_dir()
 
-    if not directory.is_dir():
-        return []
-
-    return sorted(
-        path.stem
-        for path in directory.glob("*.jsonl")
-        if path.is_file()
-    )
+    chats = {path.stem for path in directory.glob("*.jsonl") if path.is_file()}
+    if os.environ.get("HELPER_TEST_FIXTURE") == "1":
+        chats.update(m.chat for m in _fixture_messages("elektro") +
+                     _fixture_messages("algo") + _fixture_messages("models"))
+    return sorted(chats)
 
 
 def get_message(msg_id: str) -> Message:
@@ -208,22 +216,22 @@ def get_attachments(msg_id: str) -> list[AttachedFile]:
     return get_message(msg_id).attachments
 
 
-def file_abs_path(file: AttachedFile) -> str:
+def file_abs_path(f: AttachedFile) -> str:
     """Возвращает абсолютный путь к вложению из data/raw/<chat_id>/."""
 
-    chat_id = file.msg_id.split(":", 1)[0]
+    chat_id = f.msg_id.split(":", 1)[0]
 
     if not chat_id:
         raise ValueError(
-            f"Некорректный ID сообщения вложения: {file.msg_id!r}"
+            f"Некорректный ID сообщения вложения: {f.msg_id!r}"
         )
 
     raw_root = _raw_dir(chat_id).resolve()
-    relative_path = Path(file.path)
+    relative_path = Path(f.path)
 
     if relative_path.is_absolute():
         raise ValueError(
-            f"Путь вложения должен быть относительным: {file.path!r}"
+            f"Путь вложения должен быть относительным: {f.path!r}"
         )
 
     target = (raw_root / relative_path).resolve()
@@ -232,10 +240,14 @@ def file_abs_path(file: AttachedFile) -> str:
         target.relative_to(raw_root)
     except ValueError:
         raise ValueError(
-            f"Путь вложения выходит за пределы каталога чата: {file.path!r}"
+            f"Путь вложения выходит за пределы каталога чата: {f.path!r}"
         ) from None
 
     if not target.is_file():
+        if os.environ.get("HELPER_TEST_FIXTURE") == "1":
+            fixture = (ROOT / "tests" / "fixtures" / "mini_chat" / "files" / relative_path.name)
+            if fixture.is_file():
+                return str(fixture.resolve())
         raise FileNotFoundError(
             f"Файл вложения не найден: {target}"
         )

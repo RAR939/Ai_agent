@@ -32,6 +32,9 @@
 | [tracker_notes.md](tracker_notes.md), [tracker_eval.md](tracker_eval.md) | трекер: решения, ограничения, метрики на синтетике |
 | [agent_eval.md](agent_eval.md) | оценка агента (метрики и таблица, цифр пока нет) |
 | [retrieval_experiments.md](retrieval_experiments.md) | эксперименты поиска (цифр пока нет) |
+| [corpus_description.md](corpus_description.md) | агрегированное описание корпуса без текстов сообщений и персональных данных |
+| [data_policy.md](data_policy.md) | правила работы с данными учебных чатов |
+| [html_structure.md](html_structure.md) | структура экспорта Telegram HTML |
 | [ui_notes.md](ui_notes.md) | интерфейс: что есть и как запускать |
 
 Документация по модулям лежит рядом с кодом: `src/ingest/README.md`, `src/index/README.md`, `src/tracker/README.md`, `ui/README.md`, `eval/README.md`.
