@@ -14,7 +14,7 @@ def _reranker(name):
     return CrossEncoder(name)
 
 def search(query: str, chat: str | None = None, discipline: str | None = None, date_from: str | None = None, date_to: str | None = None, role: str | None = None, top_k: int = 5) -> list[SearchHit]:
-    c=cfg()['retrieval'];chunks=all_chunks();top_k=max(0,min(8,top_k))
+    c=cfg()['retrieval'];chunks=all_chunks();top_k=max(0,min(int(c.get('max_top_k',8)),top_k))
     def ok(x):
         if chat and x.chat!=chat:return False
         if discipline and x.discipline!=discipline:return False
@@ -28,7 +28,7 @@ def search(query: str, chat: str | None = None, discipline: str | None = None, d
     a=vector_rank(query,eligible,n);b=lexical_rank(query,chunks,eligible,n)
     scores={}
     for ranking in (a,b):
-        for rank,(id,_) in enumerate(ranking,1):scores[id]=scores.get(id,0)+1/(60+rank)
+        for rank,(id,_) in enumerate(ranking,1):scores[id]=scores.get(id,0)+1/(int(c.get('rrf_k',60))+rank)
     ids=sorted(scores,key=scores.get,reverse=True)[:c.get('rerank_top',15)]
     if c.get('use_reranker',True) and ids:
         model=_reranker(cfg()['models'].get('reranker', cfg()['models'].get('renamer', 'BAAI/bge-reranker-v2-m3')))
@@ -38,4 +38,5 @@ def search(query: str, chat: str | None = None, discipline: str | None = None, d
         scored=sorted(zip(ids,map(float,values)),key=lambda x:x[1],reverse=True)
     else:scored=[(id,scores[id]) for id in ids]
     lookup={x.id:x for x in chunks}
-    return [SearchHit(chunk_id=id,chat=lookup[id].chat,text=lookup[id].text[:1500],ts_from=lookup[id].ts_from,ts_to=lookup[id].ts_to,roles=lookup[id].roles,msg_ids=lookup[id].msg_ids,discipline=lookup[id].discipline,score=score) for id,score in scored[:top_k]]
+    text_chars=int(c.get('result_text_chars',1500))
+    return [SearchHit(chunk_id=id,chat=lookup[id].chat,text=lookup[id].text[:text_chars],ts_from=lookup[id].ts_from,ts_to=lookup[id].ts_to,roles=lookup[id].roles,msg_ids=lookup[id].msg_ids,discipline=lookup[id].discipline,score=score) for id,score in scored[:top_k]]

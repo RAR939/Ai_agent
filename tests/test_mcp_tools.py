@@ -55,6 +55,25 @@ def test_search_errors(monkeypatch):
     assert call(mcp_server.search_messages, query="х") == {"error": "Ошибка поиска: индекс не построен"}
 
 
+def test_search_uses_configured_limit_and_relevance_threshold(monkeypatch):
+    seen = {}
+    original = mcp_server.load_config
+    def configured():
+        config = original()
+        config["retrieval"].update(top_k=2, min_score=0.8,
+                                    use_reranker=True, filter_tool_results_by_score=True)
+        return config
+    def fake(**kwargs):
+        seen.update(kwargs)
+        return list(fx.hits())[:2]
+    monkeypatch.setattr(mcp_server, "load_config", configured)
+    monkeypatch.setattr(mcp_server, "_search_hits", fake)
+    assert len(call(mcp_server.search_messages, query="лаб2")) == 2
+    assert seen["top_k"] == 2
+    monkeypatch.setattr(mcp_server, "_search_hits", lambda **kwargs: list(fx.hits())[2:])
+    assert call(mcp_server.search_messages, query="лаб2") == []
+
+
 # ---------- read_new_messages ----------
 def test_read_new_messages_skips_processed(tdb):
     allm = call(mcp_server.read_new_messages, chat="elektro")
