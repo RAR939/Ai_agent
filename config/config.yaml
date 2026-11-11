@@ -8,6 +8,9 @@ models:
   timeout_sec: 120           # ожидание ответа сервера
 
 retrieval:
+  subject_model_enabled: true # модель размечает сообщения без явного предмета при индексации
+  subject_model_batch_size: 20
+  subject_model_min_confidence: 0.75
   chunk_strategy: "window"   # window | thread | day
   window_size: 10
   window_step: 5

@@ -9,9 +9,10 @@ from .vector_store import rank as vector_rank
 _rerank_lock=threading.Lock()
 @lru_cache(maxsize=2)
 def _reranker(name):
-    # модель грузится один раз за процесс (раньше при каждом поиске); на сервере с GPU sentence-transformers берёт CUDA сам
+    # Явно выбираем CUDA, если она доступна; серверный скрипт проверяет это до запуска.
     from sentence_transformers import CrossEncoder
-    return CrossEncoder(name)
+    import torch
+    return CrossEncoder(name, device="cuda" if torch.cuda.is_available() else "cpu")
 
 def search(query: str, chat: str | None = None, discipline: str | None = None, date_from: str | None = None, date_to: str | None = None, role: str | None = None, top_k: int = 5) -> list[SearchHit]:
     c=cfg()['retrieval'];chunks=all_chunks();top_k=max(0,min(int(c.get('max_top_k',8)),top_k))

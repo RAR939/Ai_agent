@@ -22,6 +22,9 @@ models:
 | `models.temperature` | `0.1` | температура ответов агента |
 | `models.host` | пусто | адрес Ollama (`http://сервер:11434`); пусто: `OLLAMA_HOST` или локальная |
 | `models.timeout_sec` | `120` | ожидание ответа Ollama |
+| `retrieval.subject_model_enabled` | `true` | при индексации определять предмет неоднозначных сообщений моделью; явные названия и ответы размечаются правилами |
+| `retrieval.subject_model_batch_size` | `20` | число неоднозначных сообщений в одном запросе к модели |
+| `retrieval.subject_model_min_confidence` | `0.75` | ниже этой уверенности предмет остаётся неизвестным |
 | `retrieval.chunk_strategy` | `window` | разбиение на чанки: `window`, `thread` (по цепочкам ответов), `day` (по дням) |
 | `retrieval.window_size` / `window_step` | `10` / `5` | размер окна и шаг, в сообщениях |
 | `retrieval.max_chunk_chars` | `1800` | предел длины чанка |

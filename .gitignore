@@ -15,6 +15,7 @@ chroma/
 __pycache__/
 *.pyc
 .pytest_cache/
+.pytest-tmp/
 
 # реальные имена участников
 config/roles.local.yaml

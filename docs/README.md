@@ -32,6 +32,7 @@
 | [tracker_notes.md](tracker_notes.md), [tracker_eval.md](tracker_eval.md) | трекер: решения, ограничения, метрики на синтетике |
 | [agent_eval.md](agent_eval.md) | оценка агента (метрики и таблица, цифр пока нет) |
 | [retrieval_experiments.md](retrieval_experiments.md) | эксперименты поиска (цифр пока нет) |
+| [search_experiment_protocol.md](search_experiment_protocol.md) | сравнение конфигураций поиска на размеченных вопросах |
 | [corpus_description.md](corpus_description.md) | агрегированное описание корпуса без текстов сообщений и персональных данных |
 | [data_policy.md](data_policy.md) | правила работы с данными учебных чатов |
 | [html_structure.md](html_structure.md) | структура экспорта Telegram HTML |
