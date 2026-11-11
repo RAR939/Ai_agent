@@ -15,7 +15,11 @@ retrieval:
   candidates: 20
   rerank_top: 15
   top_k: 5
+  max_top_k: 8
+  result_text_chars: 1500
+  rrf_k: 60
   min_score: 0.3             # порог релевантности
+  filter_tool_results_by_score: true # применяется только с реранкером; порог нужно подобрать на разметке
   use_reranker: true
   bm25: {k1: 1.5, b: 0.75}
 

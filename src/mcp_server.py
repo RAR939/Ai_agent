@@ -24,7 +24,6 @@ from src.tracker import common, dates, db, match, schedule_import, schedule_quer
 mcp = MCPServer("student-helper")
 
 MAX_NEW_MESSAGES = 30
-SEARCH_TOP_K = 5
 TOOL_CONFIDENCE = 0.8     # уверенность записи, сделанной через инструмент (ниже порога уходит на подтверждение)
 LOW_CONFIDENCE = 0.4      # срок не удалось понять: запись ждёт человека
 
@@ -98,8 +97,12 @@ def search_messages(query: str, discipline: str | None = None, period_days: int 
         _check_discipline(discipline)
         date_from = ((common.now() - timedelta(days=max(period_days, 0))).date().isoformat()
                      if period_days is not None else None)
+        retrieval = load_config()["retrieval"]
         hits = _search_hits(query=query, discipline=discipline, date_from=date_from, role=role,
-                            top_k=SEARCH_TOP_K)
+                            top_k=int(retrieval.get("top_k", 5)))
+        if retrieval.get("filter_tool_results_by_score", True) and retrieval.get("use_reranker", True):
+            threshold = float(retrieval.get("min_score", 0.3))
+            hits = [hit for hit in hits if hit.score >= threshold]
         return _to_json(hits)
     except Exception as e:
         return _fail("Ошибка поиска", e)
