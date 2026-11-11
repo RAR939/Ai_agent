@@ -9,8 +9,10 @@
 """
 import argparse
 import json
+import os
 import re
 from pathlib import Path
+from unittest.mock import patch
 
 from src.schemas import Message
 from src.tracker import common, db, dates, extract, pipeline, prefilter
@@ -66,6 +68,12 @@ def prefilter_gold(path: Path) -> dict | None:
 
 
 def run_mini_chat() -> dict:
+    """Run the synthetic corpus without enabling fixture data for normal application use."""
+    with patch.dict(os.environ, {"HELPER_TEST_FIXTURE": "1"}):
+        return _run_mini_chat()
+
+
+def _run_mini_chat() -> dict:
     """Прогон конвейера на мини-чате с «идеальной» моделью (берёт ответы из эталона)."""
     expected = json.loads((FIX / "mini_chat_expected.json").read_text(encoding="utf-8"))
     answers = {d["msg_id"]: d["extract"] for d in expected["deadlines"]}
