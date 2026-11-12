@@ -13,4 +13,4 @@ echo "Results directory: $run_dir"
 echo "Watch: tail -f $run_dir/run.log"
 trap 'tar -czf "$run_dir.tar.gz" "$run_dir"; echo "Archive: $run_dir.tar.gz"' EXIT
 .venv/bin/python -u -m eval.search_config_experiment \
-    --gold "$run_dir/search_gold.jsonl" --out "$run_dir/results.json" 2>&1 | tee "$run_dir/run.log"
+    --gold "$run_dir/search_gold.jsonl" --out "$run_dir/results.json" "$@" 2>&1 | tee "$run_dir/run.log"

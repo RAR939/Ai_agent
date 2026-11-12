@@ -41,6 +41,25 @@ for name, overrides in {
     VARIANTS[name] = {**VARIANTS["window_10_rerank"], **overrides}
 
 
+DEFAULT_VARIANTS = list(VARIANTS)
+THREAD_VARIANTS = []
+for suffix, overrides in [
+    ("score0", {"min_score": 0.0}),
+    ("score005", {"min_score": 0.05}),
+    ("score01", {"min_score": 0.1}),
+    ("score02", {"min_score": 0.2}),
+    ("score03", {"min_score": 0.3}),
+    ("score05", {"min_score": 0.5}),
+    ("candidates40", {"candidates": 40, "rerank_top": 30}),
+    ("no_rerank", {"use_reranker": False}),
+]:
+    name = "thread_" + suffix
+    VARIANTS[name] = {**VARIANTS["thread_rerank"], "min_score": 0.3,
+                      "filter_tool_results_by_score": True, "top_k": 5,
+                      "max_top_k": 8, **overrides}
+    THREAD_VARIANTS.append(name)
+
+
 def checkpoint(output, result):
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = output.with_suffix(".tmp")
@@ -144,6 +163,11 @@ def run(gold_path: Path, output: Path, selected: list[str]) -> dict:
                 common.all_chunks = search.all_chunks = lambda: chunks
                 if not chunks or not search.all_chunks():
                     raise RuntimeError("Experiment index is empty; refusing to score empty retrieval")
+                print(f"[{variant_number}/{len(selected)}] {name}: warmup", flush=True)
+                warmup_start = time.perf_counter()
+                search.search("Учебные задания и требования к отчёту", chat=chats[0],
+                              top_k=int(config["retrieval"]["top_k"]))
+                warmup_seconds = time.perf_counter() - warmup_start
                 rows = []
                 result["variants"][name] = {"config": config["retrieval"], "queries": rows,
                                             "chunks": len(chunks), "status": "running"}
@@ -158,7 +182,9 @@ def run(gold_path: Path, output: Path, selected: list[str]) -> dict:
                     score = evaluate_hits(hits, set(question["relevant_msg_ids"]), threshold)
                     rows.append({"query": question["query"], "chat": question.get("chat"),
                                  "relevant_msg_ids": question["relevant_msg_ids"],
-                                 "seconds": seconds, **score})
+                                 "seconds": seconds,
+                                 "hits": [{"msg_ids": h.msg_ids, "score": h.score} for h in hits],
+                                 **score})
                     result["elapsed_seconds"] = time.perf_counter() - run_start
                     result["progress"] = {"variant": name, "question": question_number,
                                           "questions": len(gold)}
@@ -168,7 +194,8 @@ def run(gold_path: Path, output: Path, selected: list[str]) -> dict:
                     raise RuntimeError(f"{name}: every query returned no candidates; check index wiring")
                 result["variants"][name] = {"config": config["retrieval"],
                                             "metrics": summarize(rows), "queries": rows,
-                                            "chunks": len(chunks), "status": "complete"}
+                                            "chunks": len(chunks), "status": "complete",
+                                            "warmup_seconds": warmup_seconds}
                 checkpoint(output, result)
                 vector_store._client.cache_clear()
     finally:
@@ -185,9 +212,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--gold", type=Path, required=True)
     parser.add_argument("--out", type=Path, default=Path("data/eval/search_config_results.json"))
-    parser.add_argument("--variants", nargs="+", choices=sorted(VARIANTS), default=list(VARIANTS))
+    parser.add_argument("--variants", nargs="+", choices=sorted(VARIANTS))
+    parser.add_argument("--suite", choices=["default", "threads"], default="default")
     args = parser.parse_args()
-    result = run(args.gold, args.out, args.variants)
+    selected = args.variants or (THREAD_VARIANTS if args.suite == "threads" else DEFAULT_VARIANTS)
+    result = run(args.gold, args.out, selected)
     for name, variant in result["variants"].items():
         print(name, json.dumps(variant["metrics"], ensure_ascii=False))
     print(f"Detailed results: {args.out}")
