@@ -3,6 +3,39 @@ from types import SimpleNamespace
 from eval.search_config_experiment import evaluate_hits, summarize
 
 
+def test_run_connects_search_to_temporary_chunks(tmp_path, monkeypatch):
+    import json
+    from types import SimpleNamespace as NS
+    from eval import search_config_experiment as experiment
+    import src.index as index
+    chunk = NS(msg_ids=["group:1"], discipline="algo")
+    modules = {name: NS(cfg=lambda: {}) for name in
+               ("chunking", "common", "lexical", "search", "vector_store")}
+    modules["chunking"].chunk_messages = lambda messages: [chunk]
+    modules["common"].all_chunks = lambda: []
+    search = modules["search"]
+    original_provider = lambda: []
+    search.all_chunks = original_provider
+    search.search = lambda *args, **kw: [NS(score=1.0, msg_ids=c.msg_ids)
+                                        for c in search.all_chunks()]
+    store = modules["vector_store"]
+    store.ROOT = tmp_path
+    store._client = NS(cache_clear=lambda: None)
+    store.upsert = lambda chunks: None
+    modules["subject_classifier"] = NS(classify=lambda *args: {})
+    for name, module in modules.items():
+        monkeypatch.setattr(index, name, module, raising=False)
+    monkeypatch.setattr(experiment, "load_config", lambda: {
+        "models": {}, "retrieval": {"top_k": 5, "min_score": 0.3}})
+    monkeypatch.setattr(experiment, "load_messages", lambda chat: [NS(id="group:1")])
+    gold = tmp_path / "gold.jsonl"
+    gold.write_text(json.dumps({"query": "test", "chat": "group",
+                                "relevant_msg_ids": ["group:1"]}), encoding="utf-8")
+    result = experiment.run(gold, tmp_path / "results.json", ["window_10_rerank"])
+    assert result["variants"]["window_10_rerank"]["metrics"]["hit_at_k"] == 1
+    assert search.all_chunks is original_provider
+
+
 def test_checkpoint_exports_partial_results(tmp_path):
     import json
     import zipfile
