@@ -117,7 +117,7 @@ def run(gold_path: Path, output: Path, selected: list[str]) -> dict:
     result = {"gold": str(gold_path), "chats": chats,
               "models": base["models"], "base_retrieval": base["retrieval"], "variants": {}}
     original = (chunking.cfg, common.cfg, lexical.cfg, search.cfg, vector_store.cfg,
-                common.all_chunks, vector_store.ROOT)
+                common.all_chunks, search.all_chunks, vector_store.ROOT)
     from src.index import subject_classifier
     original_classify = subject_classifier.classify
     # Freeze subject labels once so every retrieval variant sees the same data.
@@ -141,7 +141,9 @@ def run(gold_path: Path, output: Path, selected: list[str]) -> dict:
                 vector_store.ROOT = Path(temp)
                 vector_store._client.cache_clear()
                 vector_store.upsert(chunks)
-                common.all_chunks = lambda: chunks
+                common.all_chunks = search.all_chunks = lambda: chunks
+                if not chunks or not search.all_chunks():
+                    raise RuntimeError("Experiment index is empty; refusing to score empty retrieval")
                 rows = []
                 result["variants"][name] = {"config": config["retrieval"], "queries": rows,
                                             "chunks": len(chunks), "status": "running"}
@@ -162,6 +164,8 @@ def run(gold_path: Path, output: Path, selected: list[str]) -> dict:
                                           "questions": len(gold)}
                     checkpoint(output, result)
                     print(f"[{variant_number}/{len(selected)}] {name} {question_number}/{len(gold)} | {seconds:.2f}s", flush=True)
+                if not any(row["top_msg_ids"] for row in rows):
+                    raise RuntimeError(f"{name}: every query returned no candidates; check index wiring")
                 result["variants"][name] = {"config": config["retrieval"],
                                             "metrics": summarize(rows), "queries": rows,
                                             "chunks": len(chunks), "status": "complete"}
@@ -170,7 +174,7 @@ def run(gold_path: Path, output: Path, selected: list[str]) -> dict:
     finally:
         subject_classifier.classify = original_classify
         (chunking.cfg, common.cfg, lexical.cfg, search.cfg, vector_store.cfg,
-         common.all_chunks, vector_store.ROOT) = original
+         common.all_chunks, search.all_chunks, vector_store.ROOT) = original
         vector_store._client.cache_clear()
     result["status"] = "complete"
     checkpoint(output, result)
